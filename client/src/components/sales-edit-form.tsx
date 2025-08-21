@@ -101,16 +101,30 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <DialogHeader>
-        <DialogTitle>Edit Sales Record - {sale.dealNumber}</DialogTitle>
+    <div className="max-w-7xl mx-auto">
+      <DialogHeader className="pb-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-emerald-50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Edit Sale Record
+            </DialogTitle>
+            <p className="text-lg text-gray-600 mt-1">Deal #{sale.dealNumber} • {sale.firstName} {sale.lastName} • Stock #{sale.stockNumber}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-green-600">${Number(sale.salesPrice).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Sale Price</p>
+          </div>
+        </div>
       </DialogHeader>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
           {/* Basic Sale Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Sale Information</h3>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Sale Information</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -166,9 +180,12 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
           </div>
 
           {/* Customer Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Customer Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Customer Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <FormField
                 control={form.control}
                 name="customerNumber"
@@ -228,8 +245,11 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
           </div>
 
           {/* Vehicle Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Vehicle Details</h3>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Vehicle Details</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -282,8 +302,11 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
           </div>
 
           {/* Pricing Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Pricing Information</h3>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Pricing Information</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -348,8 +371,11 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
           </div>
 
           {/* Staff Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Staff Information</h3>
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Staff Information</h3>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <h4 className="font-medium text-gray-700">Manager Information</h4>
@@ -447,13 +473,266 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
             </div>
           </div>
           
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onSuccess} data-testid="button-cancel-edit-sales">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-sales-changes">
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
+          {/* Trade-in Information */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Trade-in Vehicles</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Trade 1 */}
+              <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+                <h4 className="font-semibold text-yellow-700 mb-3">Trade-in #1</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="trade1Vin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>VIN</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="1HGCM82633A123456"
+                              maxLength={17}
+                              {...field}
+                              className="font-mono"
+                              data-testid="input-trade1-vin"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="trade1Year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Year</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1900"
+                            max="2030"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                            data-testid="input-trade1-year"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade1Make"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Make</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Honda" {...field} data-testid="input-trade1-make" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade1Model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Model</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Civic" {...field} data-testid="input-trade1-model" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade1Odometer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mileage</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="85000"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            data-testid="input-trade1-odometer"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade1ACV"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ACV ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="8500"
+                            {...field}
+                            className="font-semibold text-yellow-600"
+                            data-testid="input-trade1-acv"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Trade 2 */}
+              <div className="p-4 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg border border-amber-200">
+                <h4 className="font-semibold text-amber-700 mb-3">Trade-in #2 (Optional)</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2">
+                    <FormField
+                      control={form.control}
+                      name="trade2Vin"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>VIN</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="1HGCM82633A123456"
+                              maxLength={17}
+                              {...field}
+                              className="font-mono"
+                              data-testid="input-trade2-vin"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="trade2Year"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Year</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1900"
+                            max="2030"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                            data-testid="input-trade2-year"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade2Make"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Make</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Honda" {...field} data-testid="input-trade2-make" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade2Model"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Model</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Civic" {...field} data-testid="input-trade2-model" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade2Odometer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mileage</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="85000"
+                            {...field}
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                            data-testid="input-trade2-odometer"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="trade2ACV"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ACV ($)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="8500"
+                            {...field}
+                            className="font-semibold text-amber-600"
+                            data-testid="input-trade2-acv"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                All changes will be saved to the sales database
+              </p>
+              <div className="flex space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onSuccess} 
+                  data-testid="button-cancel-edit-sales"
+                  className="px-6 py-2"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateMutation.isPending} 
+                  data-testid="button-save-sales-changes"
+                  className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                >
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
         </form>
       </Form>

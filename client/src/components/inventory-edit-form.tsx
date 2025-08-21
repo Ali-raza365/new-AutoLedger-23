@@ -81,14 +81,31 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
   }, [watchPrice, watchCost, form]);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <DialogHeader>
-        <DialogTitle>Edit Vehicle - {vehicle.stockNumber}</DialogTitle>
+    <div className="max-w-6xl mx-auto">
+      <DialogHeader className="pb-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 -mx-6 -mt-6 px-6 pt-6 rounded-t-lg">
+        <div className="flex items-center justify-between">
+          <div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Edit Vehicle
+            </DialogTitle>
+            <p className="text-lg text-gray-600 mt-1">{vehicle.year} {vehicle.make} {vehicle.model} • Stock #{vehicle.stockNumber}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-blue-600">${Number(vehicle.price).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Current Price</p>
+          </div>
+        </div>
       </DialogHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 mt-6">
+          {/* Basic Vehicle Information */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Basic Vehicle Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Stock Number */}
             <FormField
               control={form.control}
@@ -370,35 +387,262 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
               )}
             />
             
-            {/* Age */}
-            <FormField
-              control={form.control}
-              name="age"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Age (days)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="45"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      data-testid="input-age"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            </div>
+          </div>
+
+          {/* Vehicle Specifications */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Vehicle Specifications</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Color */}
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Color</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Silver Metallic" {...field} data-testid="input-color" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Body */}
+              <FormField
+                control={form.control}
+                name="body"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Body Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-body">
+                          <SelectValue placeholder="Select body type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Sedan">Sedan</SelectItem>
+                        <SelectItem value="SUV">SUV</SelectItem>
+                        <SelectItem value="Truck">Truck</SelectItem>
+                        <SelectItem value="Coupe">Coupe</SelectItem>
+                        <SelectItem value="Convertible">Convertible</SelectItem>
+                        <SelectItem value="Wagon">Wagon</SelectItem>
+                        <SelectItem value="Hatchback">Hatchback</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Certified */}
+              <FormField
+                control={form.control}
+                name="certified"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Certified</FormLabel>
+                    <Select onValueChange={(value) => field.onChange(value === "true")} value={field.value?.toString() || "false"}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-certified">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Financial Information */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Financial Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Price */}
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="28450"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        data-testid="input-price"
+                        className="font-semibold text-green-600"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Book Value */}
+              <FormField
+                control={form.control}
+                name="bookValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Book Value ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="26500"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        data-testid="input-book-value"
+                        className="font-semibold text-blue-600"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Cost */}
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="24000"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        data-testid="input-cost"
+                        className="font-semibold text-red-600"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Markup (calculated) */}
+              <FormField
+                control={form.control}
+                name="markup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Markup ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        {...field}
+                        readOnly
+                        className="bg-purple-50 font-semibold text-purple-600 border-purple-200"
+                        data-testid="input-markup"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Vehicle Condition */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Vehicle Condition</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Odometer */}
+              <FormField
+                control={form.control}
+                name="odometer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Odometer (miles)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="12450"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        data-testid="input-odometer"
+                        className="font-semibold text-blue-600"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Age */}
+              <FormField
+                control={form.control}
+                name="age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Age (days)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="45"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        data-testid="input-age"
+                        className="font-semibold text-orange-600"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
           
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-            <Button type="button" variant="outline" onClick={onSuccess} data-testid="button-cancel-edit">
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-changes">
-              {updateMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
+          <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-600">
+                All changes will be saved to the inventory database
+              </p>
+              <div className="flex space-x-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onSuccess} 
+                  data-testid="button-cancel-edit"
+                  className="px-6 py-2"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={updateMutation.isPending} 
+                  data-testid="button-save-changes"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700"
+                >
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </div>
           </div>
         </form>
       </Form>
