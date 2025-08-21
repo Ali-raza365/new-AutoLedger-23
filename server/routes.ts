@@ -202,7 +202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentYear = new Date().getFullYear();
       
       const salesThisMonth = sales.filter(sale => {
-        const saleDate = new Date(sale.createdAt);
+        const saleDate = sale.createdAt ? new Date(sale.createdAt) : new Date();
         return saleDate.getMonth() === currentMonth && saleDate.getFullYear() === currentYear;
       });
 

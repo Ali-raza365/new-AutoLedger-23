@@ -1,4 +1,5 @@
 import { useForm } from "react-hook-form";
+import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -29,10 +30,10 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
       color: "",
       certified: false,
       body: "",
-      price: 0,
-      bookValue: 0,
-      cost: 0,
-      markup: 0,
+      price: "0",
+      bookValue: "0",
+      cost: "0",
+      markup: "0",
       odometer: 0,
       age: 0,
     },
@@ -62,7 +63,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   const onSubmit = (data: InsertInventory) => {
     // Calculate markup if price and cost are provided
     if (data.price && data.cost) {
-      data.markup = Number(data.price) - Number(data.cost);
+      data.markup = String(Number(data.price) - Number(data.cost));
     }
     createMutation.mutate(data);
   };
@@ -72,12 +73,14 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   const watchCost = form.watch("cost");
 
   // Auto-calculate markup when price or cost changes
-  if (watchPrice && watchCost) {
-    const calculatedMarkup = Number(watchPrice) - Number(watchCost);
-    if (form.getValues("markup") !== calculatedMarkup) {
-      form.setValue("markup", calculatedMarkup);
+  useEffect(() => {
+    if (watchPrice && watchCost) {
+      const calculatedMarkup = Number(watchPrice) - Number(watchCost);
+      if (form.getValues("markup") !== String(calculatedMarkup)) {
+        form.setValue("markup", String(calculatedMarkup));
+      }
     }
-  }
+  }, [watchPrice, watchCost, form]);
 
   return (
     <div className="space-y-6">

@@ -25,7 +25,7 @@ export default function Inventory() {
       item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.stockNumber.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesMake = !selectedMake || item.make === selectedMake;
+    const matchesMake = !selectedMake || selectedMake === "all" || item.make === selectedMake;
     
     return matchesSearch && matchesMake;
   });
@@ -85,7 +85,7 @@ export default function Inventory() {
                   <SelectValue placeholder="All Makes" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Makes</SelectItem>
+                  <SelectItem value="all">All Makes</SelectItem>
                   {uniqueMakes.map((make) => (
                     <SelectItem key={make} value={make}>{make}</SelectItem>
                   ))}

@@ -65,17 +65,25 @@ export const insertInventorySchema = createInsertSchema(inventory).omit({
 }).extend({
   year: z.number().min(1900).max(2030),
   vin: z.string().length(17, "VIN must be exactly 17 characters"),
-  price: z.number().positive("Price must be positive"),
+  price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Price must be a positive number"),
+  bookValue: z.string().optional().nullable(),
+  cost: z.string().optional().nullable(),
+  markup: z.string().optional().nullable(),
   odometer: z.number().min(0, "Odometer cannot be negative"),
+  age: z.number().optional().nullable(),
 });
 
 export const insertSalesSchema = createInsertSchema(sales).omit({
   id: true,
   createdAt: true,
 }).extend({
-  salesPrice: z.number().positive("Sales price must be positive"),
+  salesPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Sales price must be positive"),
+  msrp: z.string().optional().nullable(),
+  listPrice: z.string().optional().nullable(),
   trade1Vin: z.string().length(17).optional().or(z.literal("")),
   trade2Vin: z.string().length(17).optional().or(z.literal("")),
+  trade1ACV: z.string().optional().nullable(),
+  trade2ACV: z.string().optional().nullable(),
 });
 
 export type InsertInventory = z.infer<typeof insertInventorySchema>;

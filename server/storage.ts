@@ -57,7 +57,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       markup: insertItem.price && insertItem.cost 
         ? String(Number(insertItem.price) - Number(insertItem.cost))
-        : insertItem.markup
+        : insertItem.markup || null
     };
     this.inventory.set(id, item);
     return item;
@@ -98,6 +98,7 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const item: Sales = {
       ...insertItem,
+      customerNumber: insertItem.customerNumber || null,
       id,
       createdAt: new Date(),
     };

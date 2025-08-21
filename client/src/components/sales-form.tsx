@@ -40,22 +40,22 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
       trade1Make: "",
       trade1Model: "",
       trade1Odometer: 0,
-      trade1ACV: 0,
+      trade1ACV: "0",
       trade2Vin: "",
       trade2Year: undefined,
       trade2Make: "",
       trade2Model: "",
       trade2Odometer: 0,
-      trade2ACV: 0,
+      trade2ACV: "0",
       closingManagerNumber: "",
       closingManagerName: "",
       financeManagerNumber: "",
       financeManagerName: "",
       salesmanNumber: "",
       salesmanName: "",
-      msrp: 0,
-      listPrice: 0,
-      salesPrice: 0,
+      msrp: "0",
+      listPrice: "0",
+      salesPrice: "0",
     },
   });
 
@@ -68,8 +68,8 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
         // Pre-fill form with vehicle data
         form.setValue("stockNumber", vehicle.stockNumber);
         form.setValue("exteriorColor", vehicle.color);
-        form.setValue("listPrice", Number(vehicle.price));
-        form.setValue("msrp", Number(vehicle.price) + 1000); // Estimate MSRP
+        form.setValue("listPrice", String(vehicle.price));
+        form.setValue("msrp", String(Number(vehicle.price) + 1000)); // Estimate MSRP
         toast({
           title: "Vehicle Found",
           description: `${vehicle.year} ${vehicle.make} ${vehicle.model} - Stock #${vehicle.stockNumber}`,
@@ -134,7 +134,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
       data.trade1Make = "";
       data.trade1Model = "";
       data.trade1Odometer = 0;
-      data.trade1ACV = 0;
+      data.trade1ACV = "0";
     }
     if (!data.trade2Vin) {
       data.trade2Vin = undefined;
@@ -142,7 +142,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
       data.trade2Make = "";
       data.trade2Model = "";
       data.trade2Odometer = 0;
-      data.trade2ACV = 0;
+      data.trade2ACV = "0";
     }
     createMutation.mutate(data);
   };
