@@ -17,38 +17,129 @@ interface InventoryTableProps {
 }
 
 function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
+  const profitMargin = vehicle.markup && vehicle.cost ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1) : '0.0';
+  
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>Vehicle Details</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-blue-50">
+      <DialogHeader className="pb-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-gray-900 mb-3">Basic Information</h3>
-            <div className="space-y-2">
-              <div><span className="text-gray-600">Stock Number:</span> <span className="font-medium">{vehicle.stockNumber}</span></div>
-              <div><span className="text-gray-600">VIN:</span> <span className="font-mono text-sm">{vehicle.vin}</span></div>
-              <div><span className="text-gray-600">Year:</span> <span className="font-medium">{vehicle.year}</span></div>
-              <div><span className="text-gray-600">Make:</span> <span className="font-medium">{vehicle.make}</span></div>
-              <div><span className="text-gray-600">Model:</span> <span className="font-medium">{vehicle.model}</span></div>
-              <div><span className="text-gray-600">Series:</span> <span className="font-medium">{vehicle.series || 'N/A'}</span></div>
-              <div><span className="text-gray-600">Body:</span> <span className="font-medium">{vehicle.body}</span></div>
-              <div><span className="text-gray-600">Color:</span> <span className="font-medium">{vehicle.color}</span></div>
-              <div><span className="text-gray-600">Certified:</span> <span className="font-medium">{vehicle.certified ? 'Yes' : 'No'}</span></div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              {vehicle.year} {vehicle.make} {vehicle.model}
+            </DialogTitle>
+            <p className="text-lg text-gray-600 mt-1">Stock #{vehicle.stockNumber}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-bold text-green-600">${Number(vehicle.price).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Listed Price</p>
+          </div>
+        </div>
+      </DialogHeader>
+      
+      <div className="space-y-8 pt-6">
+        {/* Vehicle Identification */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Vehicle Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">VIN Number</span>
+                <span className="font-mono text-lg text-gray-900 bg-gray-50 px-3 py-2 rounded border">{vehicle.vin}</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Year & Make</span>
+                <span className="text-lg font-semibold text-gray-900">{vehicle.year} {vehicle.make}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Model & Series</span>
+                <span className="text-lg font-semibold text-gray-900">{vehicle.model} {vehicle.series || ''}</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Color</span>
+                <span className="text-lg font-medium text-gray-900">{vehicle.color}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Body Type</span>
+                <span className="text-lg font-medium text-gray-900">{vehicle.body}</span>
+              </div>
             </div>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Pricing & Details</h3>
-            <div className="space-y-2">
-              <div><span className="text-gray-600">Price:</span> <span className="font-medium">${Number(vehicle.price).toLocaleString()}</span></div>
-              <div><span className="text-gray-600">Book Value:</span> <span className="font-medium">${vehicle.bookValue ? Number(vehicle.bookValue).toLocaleString() : 'N/A'}</span></div>
-              <div><span className="text-gray-600">Cost:</span> <span className="font-medium">${Number(vehicle.cost).toLocaleString()}</span></div>
-              <div><span className="text-gray-600">Markup:</span> <span className="font-medium">${vehicle.markup ? Number(vehicle.markup).toLocaleString() : 'N/A'}</span></div>
-              <div><span className="text-gray-600">Odometer:</span> <span className="font-medium">{vehicle.odometer.toLocaleString()} miles</span></div>
-              <div><span className="text-gray-600">Age:</span> <span className="font-medium">{vehicle.age || 0} days</span></div>
-              <div><span className="text-gray-600">Added:</span> <span className="font-medium">{vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString() : 'N/A'}</span></div>
+        </div>
+
+        {/* Vehicle Status & Condition */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Vehicle Status</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <div className="mb-2">
+                {vehicle.certified ? (
+                  <Badge className="bg-green-500 text-white px-4 py-2 text-sm font-medium">
+                    ✓ Certified Pre-Owned
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="px-4 py-2 text-sm font-medium border-gray-300">
+                    Standard Vehicle
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-gray-600">Certification Status</p>
             </div>
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-2xl font-bold text-blue-600">{vehicle.odometer.toLocaleString()}</p>
+              <p className="text-sm text-gray-600">Miles</p>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+              <p className="text-2xl font-bold text-orange-600">{vehicle.age || 0}</p>
+              <p className="text-sm text-gray-600">Days on Lot</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Pricing Breakdown */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Financial Details</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Listed Price</p>
+              <p className="text-2xl font-bold text-green-600">${Number(vehicle.price).toLocaleString()}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Book Value</p>
+              <p className="text-2xl font-bold text-blue-600">${vehicle.bookValue ? Number(vehicle.bookValue).toLocaleString() : 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Our Cost</p>
+              <p className="text-2xl font-bold text-red-600">${Number(vehicle.cost).toLocaleString()}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Markup</p>
+              <p className="text-2xl font-bold text-purple-600">${vehicle.markup ? Number(vehicle.markup).toLocaleString() : '0'}</p>
+              <p className="text-xs text-gray-500 mt-1">{profitMargin}% margin</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Record Information */}
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center text-gray-600">
+            <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+            <span className="text-sm">Added to inventory: </span>
+            <span className="font-medium ml-1">{vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString('en-US', { 
+              year: 'numeric', month: 'long', day: 'numeric' 
+            }) : 'Date not available'}</span>
           </div>
         </div>
       </div>

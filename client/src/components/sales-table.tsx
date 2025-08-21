@@ -15,79 +15,176 @@ interface SalesTableProps {
 }
 
 function SaleViewDialog({ sale }: { sale: Sales }) {
+  const discount = sale.msrp && sale.salesPrice ? (Number(sale.msrp) - Number(sale.salesPrice)) : 0;
+  const discountPercent = sale.msrp && discount > 0 ? ((discount / Number(sale.msrp)) * 100).toFixed(1) : '0.0';
+  
   return (
-    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-      <DialogHeader>
-        <DialogTitle>Sale Details - {sale.dealNumber}</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-6">
+    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-green-50">
+      <DialogHeader className="pb-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="font-medium text-gray-900 mb-3">Customer Information</h3>
-            <div className="space-y-2">
-              <div><span className="text-gray-600">Customer Number:</span> <span className="font-medium">{sale.customerNumber || 'N/A'}</span></div>
-              <div><span className="text-gray-600">Name:</span> <span className="font-medium">{sale.firstName} {sale.lastName}</span></div>
-              <div><span className="text-gray-600">ZIP Code:</span> <span className="font-medium">{sale.zip || 'N/A'}</span></div>
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Sale #{sale.dealNumber}
+            </DialogTitle>
+            <p className="text-lg text-gray-600 mt-1">{sale.firstName} {sale.lastName} • Stock #{sale.stockNumber}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-3xl font-bold text-green-600">${Number(sale.salesPrice).toLocaleString()}</p>
+            <p className="text-sm text-gray-500">Final Sale Price</p>
+            {discount > 0 && (
+              <p className="text-xs text-red-500 mt-1">-${discount.toLocaleString()} ({discountPercent}% off MSRP)</p>
+            )}
+          </div>
+        </div>
+      </DialogHeader>
+      
+      <div className="space-y-8 pt-6">
+        {/* Customer Information */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Customer Information</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Customer</p>
+              <p className="text-xl font-bold text-blue-600">{sale.firstName} {sale.lastName}</p>
+              <p className="text-xs text-gray-500 mt-1">#{sale.customerNumber || 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">ZIP Code</p>
+              <p className="text-xl font-bold text-purple-600">{sale.zip || 'Not provided'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Vehicle Type</p>
+              <p className="text-xl font-bold text-green-600">{sale.newUsed}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Exterior Color</p>
+              <p className="text-xl font-bold text-orange-600">{sale.exteriorColor || 'Not specified'}</p>
             </div>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Vehicle Information</h3>
-            <div className="space-y-2">
-              <div><span className="text-gray-600">Stock Number:</span> <span className="font-medium">{sale.stockNumber}</span></div>
-              <div><span className="text-gray-600">Exterior Color:</span> <span className="font-medium">{sale.exteriorColor || 'N/A'}</span></div>
-              <div><span className="text-gray-600">New/Used:</span> <span className="font-medium">{sale.newUsed}</span></div>
-              <div><span className="text-gray-600">Delivery Date:</span> <span className="font-medium">{sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString() : 'Not set'}</span></div>
-              <div><span className="text-gray-600">Delivery Mileage:</span> <span className="font-medium">{sale.deliveryMileage ? sale.deliveryMileage.toLocaleString() : 'N/A'} miles</span></div>
+        </div>
+
+        {/* Vehicle & Delivery Details */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Vehicle & Delivery</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <p className="text-2xl font-bold text-green-600">#{sale.stockNumber}</p>
+              <p className="text-sm text-gray-600">Stock Number</p>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-2xl font-bold text-blue-600">
+                {sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString('en-US', { 
+                  month: 'short', day: 'numeric', year: 'numeric' 
+                }) : 'Not set'}
+              </p>
+              <p className="text-sm text-gray-600">Delivery Date</p>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-200">
+              <p className="text-2xl font-bold text-purple-600">{sale.deliveryMileage ? sale.deliveryMileage.toLocaleString() : 'N/A'}</p>
+              <p className="text-sm text-gray-600">Delivery Miles</p>
             </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Trade-in Information</h3>
-            <div className="space-y-2">
-              {sale.trade1Vin ? (
-                <>
-                  <div><span className="text-gray-600">Trade 1 VIN:</span> <span className="font-mono text-sm">{sale.trade1Vin}</span></div>
-                  <div><span className="text-gray-600">Trade 1 Vehicle:</span> <span className="font-medium">{sale.trade1Year} {sale.trade1Make} {sale.trade1Model}</span></div>
-                  <div><span className="text-gray-600">Trade 1 Odometer:</span> <span className="font-medium">{sale.trade1Odometer ? sale.trade1Odometer.toLocaleString() : 'N/A'} miles</span></div>
-                  <div><span className="text-gray-600">Trade 1 ACV:</span> <span className="font-medium">${sale.trade1ACV ? Number(sale.trade1ACV).toLocaleString() : 'N/A'}</span></div>
-                </>
-              ) : (
-                <div className="text-gray-500">No trade-in</div>
+        {/* Pricing Breakdown */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-emerald-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Pricing Details</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg border border-gray-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">MSRP</p>
+              <p className="text-2xl font-bold text-gray-600">${sale.msrp ? Number(sale.msrp).toLocaleString() : 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">List Price</p>
+              <p className="text-2xl font-bold text-blue-600">${sale.listPrice ? Number(sale.listPrice).toLocaleString() : 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <p className="text-sm font-medium text-gray-600 mb-1">Final Sale Price</p>
+              <p className="text-2xl font-bold text-green-600">${Number(sale.salesPrice).toLocaleString()}</p>
+              {discount > 0 && (
+                <p className="text-xs text-gray-500 mt-1">Saved ${discount.toLocaleString()}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Trade-in Information */}
+        {(sale.trade1Vin || sale.trade2Vin) && (
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Trade-in Vehicles</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sale.trade1Vin && (
+                <div className="p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-200">
+                  <h4 className="font-semibold text-orange-700 mb-3">Trade-in #1</h4>
+                  <div className="space-y-2">
+                    <p><span className="text-sm text-gray-600">VIN:</span> <span className="font-mono text-sm">{sale.trade1Vin}</span></p>
+                    <p><span className="text-sm text-gray-600">Vehicle:</span> <span className="font-medium">{sale.trade1Year} {sale.trade1Make} {sale.trade1Model}</span></p>
+                    <p><span className="text-sm text-gray-600">Mileage:</span> <span className="font-medium">{sale.trade1Odometer ? sale.trade1Odometer.toLocaleString() : 'N/A'} miles</span></p>
+                    <p><span className="text-sm text-gray-600">ACV:</span> <span className="font-bold text-orange-600">${sale.trade1ACV ? Number(sale.trade1ACV).toLocaleString() : 'N/A'}</span></p>
+                  </div>
+                </div>
               )}
               {sale.trade2Vin && (
-                <>
-                  <div><span className="text-gray-600">Trade 2 VIN:</span> <span className="font-mono text-sm">{sale.trade2Vin}</span></div>
-                  <div><span className="text-gray-600">Trade 2 Vehicle:</span> <span className="font-medium">{sale.trade2Year} {sale.trade2Make} {sale.trade2Model}</span></div>
-                  <div><span className="text-gray-600">Trade 2 Odometer:</span> <span className="font-medium">{sale.trade2Odometer ? sale.trade2Odometer.toLocaleString() : 'N/A'} miles</span></div>
-                  <div><span className="text-gray-600">Trade 2 ACV:</span> <span className="font-medium">${sale.trade2ACV ? Number(sale.trade2ACV).toLocaleString() : 'N/A'}</span></div>
-                </>
+                <div className="p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-yellow-200">
+                  <h4 className="font-semibold text-yellow-700 mb-3">Trade-in #2</h4>
+                  <div className="space-y-2">
+                    <p><span className="text-sm text-gray-600">VIN:</span> <span className="font-mono text-sm">{sale.trade2Vin}</span></p>
+                    <p><span className="text-sm text-gray-600">Vehicle:</span> <span className="font-medium">{sale.trade2Year} {sale.trade2Make} {sale.trade2Model}</span></p>
+                    <p><span className="text-sm text-gray-600">Mileage:</span> <span className="font-medium">{sale.trade2Odometer ? sale.trade2Odometer.toLocaleString() : 'N/A'} miles</span></p>
+                    <p><span className="text-sm text-gray-600">ACV:</span> <span className="font-bold text-yellow-600">${sale.trade2ACV ? Number(sale.trade2ACV).toLocaleString() : 'N/A'}</span></p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900 mb-3">Staff Information</h3>
-            <div className="space-y-2">
-              <div><span className="text-gray-600">Closing Manager:</span> <span className="font-medium">{sale.closingManagerName || 'N/A'} ({sale.closingManagerNumber || 'N/A'})</span></div>
-              <div><span className="text-gray-600">Finance Manager:</span> <span className="font-medium">{sale.financeManagerName || 'N/A'} ({sale.financeManagerNumber || 'N/A'})</span></div>
-              <div><span className="text-gray-600">Salesman:</span> <span className="font-medium">{sale.salesmanName || 'N/A'} ({sale.salesmanNumber || 'N/A'})</span></div>
+        )}
+        
+        {/* Staff Information */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center mb-4">
+            <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+            <h3 className="text-xl font-semibold text-gray-900">Staff Team</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 text-center">
+              <p className="text-sm font-medium text-gray-600 mb-2">Closing Manager</p>
+              <p className="text-lg font-bold text-blue-600">{sale.closingManagerName || 'Not assigned'}</p>
+              <p className="text-xs text-gray-500">#{sale.closingManagerNumber || 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200 text-center">
+              <p className="text-sm font-medium text-gray-600 mb-2">Finance Manager</p>
+              <p className="text-lg font-bold text-green-600">{sale.financeManagerName || 'Not assigned'}</p>
+              <p className="text-xs text-gray-500">#{sale.financeManagerNumber || 'N/A'}</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-200 text-center">
+              <p className="text-sm font-medium text-gray-600 mb-2">Salesperson</p>
+              <p className="text-lg font-bold text-purple-600">{sale.salesmanName || 'Not assigned'}</p>
+              <p className="text-xs text-gray-500">#{sale.salesmanNumber || 'N/A'}</p>
             </div>
           </div>
         </div>
         
-        <div>
-          <h3 className="font-medium text-gray-900 mb-3">Pricing Information</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div><span className="text-gray-600">MSRP:</span> <span className="font-medium">${sale.msrp ? Number(sale.msrp).toLocaleString() : 'N/A'}</span></div>
-            <div><span className="text-gray-600">List Price:</span> <span className="font-medium">${sale.listPrice ? Number(sale.listPrice).toLocaleString() : 'N/A'}</span></div>
-            <div><span className="text-gray-600">Sales Price:</span> <span className="font-medium text-green-600">${Number(sale.salesPrice).toLocaleString()}</span></div>
+        {/* Record Information */}
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="flex items-center text-gray-600">
+            <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
+            <span className="text-sm">Sale recorded: </span>
+            <span className="font-medium ml-1">{sale.createdAt ? new Date(sale.createdAt).toLocaleDateString('en-US', { 
+              year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            }) : 'Date not available'}</span>
           </div>
-        </div>
-        
-        <div>
-          <h3 className="font-medium text-gray-900 mb-3">Record Information</h3>
-          <div><span className="text-gray-600">Created:</span> <span className="font-medium">{sale.createdAt ? new Date(sale.createdAt).toLocaleDateString() : 'N/A'}</span></div>
         </div>
       </div>
     </DialogContent>
