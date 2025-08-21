@@ -9,6 +9,7 @@ import { Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Inventory } from "@shared/schema";
+import InventoryEditForm from "@/components/inventory-edit-form";
 
 interface InventoryTableProps {
   inventory: Inventory[];
@@ -58,6 +59,7 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
 export default function InventoryTable({ inventory, isLoading }: InventoryTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingVehicle, setEditingVehicle] = useState<Inventory | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/inventory/${id}`),
@@ -169,18 +171,27 @@ export default function InventoryTable({ inventory, isLoading }: InventoryTableP
                       </DialogTrigger>
                       <VehicleViewDialog vehicle={vehicle} />
                     </Dialog>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-blue-700"
-                      onClick={() => toast({
-                        title: "Edit Feature",
-                        description: "Edit functionality will be available soon",
-                      })}
-                      data-testid={`button-edit-${vehicle.id}`}
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <Dialog open={editingVehicle?.id === vehicle.id} onOpenChange={(open) => !open && setEditingVehicle(null)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-blue-700"
+                          onClick={() => setEditingVehicle(vehicle)}
+                          data-testid={`button-edit-${vehicle.id}`}
+                        >
+                          <Edit size={16} />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        {editingVehicle && (
+                          <InventoryEditForm 
+                            vehicle={editingVehicle} 
+                            onSuccess={() => setEditingVehicle(null)} 
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
                     <Button
                       variant="ghost"
                       size="sm"

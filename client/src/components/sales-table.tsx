@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Eye, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Sales } from "@shared/schema";
+import SalesEditForm from "@/components/sales-edit-form";
 
 interface SalesTableProps {
   sales: Sales[];
@@ -95,6 +97,7 @@ function SaleViewDialog({ sale }: { sale: Sales }) {
 export default function SalesTable({ sales, isLoading }: SalesTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [editingSale, setEditingSale] = useState<Sales | null>(null);
 
   if (isLoading) {
     return (
@@ -181,18 +184,27 @@ export default function SalesTable({ sales, isLoading }: SalesTableProps) {
                       </DialogTrigger>
                       <SaleViewDialog sale={sale} />
                     </Dialog>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-blue-700"
-                      onClick={() => toast({
-                        title: "Edit Feature",
-                        description: "Edit functionality will be available soon",
-                      })}
-                      data-testid={`button-edit-sale-${sale.id}`}
-                    >
-                      <Edit size={16} />
-                    </Button>
+                    <Dialog open={editingSale?.id === sale.id} onOpenChange={(open) => !open && setEditingSale(null)}>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-primary hover:text-blue-700"
+                          onClick={() => setEditingSale(sale)}
+                          data-testid={`button-edit-sale-${sale.id}`}
+                        >
+                          <Edit size={16} />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                        {editingSale && (
+                          <SalesEditForm 
+                            sale={editingSale} 
+                            onSuccess={() => setEditingSale(null)} 
+                          />
+                        )}
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </TableCell>
               </TableRow>
