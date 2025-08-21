@@ -276,7 +276,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                       step="0.01"
                       placeholder="28450"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(e.target.value || "0")}
                       data-testid="input-price"
                     />
                   </FormControl>
@@ -298,7 +298,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                       step="0.01"
                       placeholder="26500"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(e.target.value || "0")}
                       data-testid="input-book-value"
                     />
                   </FormControl>
@@ -320,7 +320,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                       step="0.01"
                       placeholder="24000"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      onChange={(e) => field.onChange(e.target.value || "0")}
                       data-testid="input-cost"
                     />
                   </FormControl>
