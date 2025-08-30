@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,23 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Inventory } from "@shared/schema";
 import InventoryEditForm from "@/components/inventory-edit-form";
+import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
 
 interface InventoryTableProps {
   inventory: Inventory[];
   isLoading: boolean;
 }
+
+const INVENTORY_COLUMNS: ColumnDefinition[] = [
+  { key: "stockNumber", label: "Stock #", defaultVisible: true },
+  { key: "vin", label: "VIN", defaultVisible: true },
+  { key: "vehicle", label: "Vehicle", defaultVisible: true },
+  { key: "color", label: "Color", defaultVisible: true },
+  { key: "price", label: "Price", defaultVisible: true },
+  { key: "odometer", label: "Odometer", defaultVisible: true },
+  { key: "age", label: "Age", defaultVisible: true },
+  { key: "actions", label: "Actions", defaultVisible: true },
+];
 
 function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
   const profitMargin = vehicle.markup && vehicle.cost ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1) : '0.0';
@@ -152,6 +164,35 @@ export default function InventoryTable({ inventory, isLoading }: InventoryTableP
   const queryClient = useQueryClient();
   const [editingVehicle, setEditingVehicle] = useState<Inventory | null>(null);
 
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      initial[col.key] = col.defaultVisible;
+    });
+    return initial;
+  });
+
+  const handleVisibilityChange = (key: string, visible: boolean) => {
+    setVisibleColumns(prev => ({ ...prev, [key]: visible }));
+  };
+
+  const handleHideAll = () => {
+    const hidden: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      hidden[col.key] = false;
+    });
+    setVisibleColumns(hidden);
+  };
+
+  const handleResetToDefault = () => {
+    const defaults: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      defaults[col.key] = col.defaultVisible;
+    });
+    setVisibleColumns(defaults);
+  };
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/inventory/${id}`),
     onSuccess: () => {
@@ -199,102 +240,127 @@ export default function InventoryTable({ inventory, isLoading }: InventoryTableP
 
   return (
     <Card className="overflow-hidden">
+      <div className="flex justify-end p-4 border-b">
+        <ColumnVisibilityDropdown
+          columns={INVENTORY_COLUMNS}
+          visibleColumns={visibleColumns}
+          onVisibilityChange={handleVisibilityChange}
+          onHideAll={handleHideAll}
+          onResetToDefault={handleResetToDefault}
+        />
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead>Stock #</TableHead>
-              <TableHead>VIN</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Color</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Odometer</TableHead>
-              <TableHead>Age</TableHead>
-              <TableHead>Actions</TableHead>
+              {visibleColumns.stockNumber && <TableHead>Stock #</TableHead>}
+              {visibleColumns.vin && <TableHead>VIN</TableHead>}
+              {visibleColumns.vehicle && <TableHead>Vehicle</TableHead>}
+              {visibleColumns.color && <TableHead>Color</TableHead>}
+              {visibleColumns.price && <TableHead>Price</TableHead>}
+              {visibleColumns.odometer && <TableHead>Odometer</TableHead>}
+              {visibleColumns.age && <TableHead>Age</TableHead>}
+              {visibleColumns.actions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {inventory.map((vehicle) => (
               <TableRow key={vehicle.id} className="hover:bg-gray-50" data-testid={`row-vehicle-${vehicle.id}`}>
-                <TableCell className="font-medium text-primary" data-testid={`text-stock-${vehicle.id}`}>
-                  {vehicle.stockNumber}
-                </TableCell>
-                <TableCell className="text-gray-600 font-mono text-sm" data-testid={`text-vin-${vehicle.id}`}>
-                  {vehicle.vin}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium text-gray-900" data-testid={`text-vehicle-${vehicle.id}`}>
-                      {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.series}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {vehicle.body}
-                      {vehicle.certified && (
-                        <Badge variant="secondary" className="ml-2">Certified</Badge>
-                      )}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-gray-600" data-testid={`text-color-${vehicle.id}`}>
-                  {vehicle.color}
-                </TableCell>
-                <TableCell className="font-medium text-gray-900" data-testid={`text-price-${vehicle.id}`}>
-                  ${Number(vehicle.price).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-gray-600" data-testid={`text-odometer-${vehicle.id}`}>
-                  {vehicle.odometer.toLocaleString()} mi
-                </TableCell>
-                <TableCell className="text-gray-600" data-testid={`text-age-${vehicle.id}`}>
-                  {vehicle.age || 0} days
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-blue-700"
-                          data-testid={`button-view-${vehicle.id}`}
-                        >
-                          <Eye size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <VehicleViewDialog vehicle={vehicle} />
-                    </Dialog>
-                    <Dialog open={editingVehicle?.id === vehicle.id} onOpenChange={(open) => !open && setEditingVehicle(null)}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-blue-700"
-                          onClick={() => setEditingVehicle(vehicle)}
-                          data-testid={`button-edit-${vehicle.id}`}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        {editingVehicle && (
-                          <InventoryEditForm 
-                            vehicle={editingVehicle} 
-                            onSuccess={() => setEditingVehicle(null)} 
-                          />
+                {visibleColumns.stockNumber && (
+                  <TableCell className="font-medium text-primary" data-testid={`text-stock-${vehicle.id}`}>
+                    {vehicle.stockNumber}
+                  </TableCell>
+                )}
+                {visibleColumns.vin && (
+                  <TableCell className="text-gray-600 font-mono text-sm" data-testid={`text-vin-${vehicle.id}`}>
+                    {vehicle.vin}
+                  </TableCell>
+                )}
+                {visibleColumns.vehicle && (
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-gray-900" data-testid={`text-vehicle-${vehicle.id}`}>
+                        {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.series}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {vehicle.body}
+                        {vehicle.certified && (
+                          <Badge variant="secondary" className="ml-2">Certified</Badge>
                         )}
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:text-red-900"
-                      onClick={() => handleDelete(vehicle.id, vehicle.stockNumber)}
-                      disabled={deleteMutation.isPending}
-                      data-testid={`button-delete-${vehicle.id}`}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </TableCell>
+                      </div>
+                    </div>
+                  </TableCell>
+                )}
+                {visibleColumns.color && (
+                  <TableCell className="text-gray-600" data-testid={`text-color-${vehicle.id}`}>
+                    {vehicle.color}
+                  </TableCell>
+                )}
+                {visibleColumns.price && (
+                  <TableCell className="font-medium text-gray-900" data-testid={`text-price-${vehicle.id}`}>
+                    ${Number(vehicle.price).toLocaleString()}
+                  </TableCell>
+                )}
+                {visibleColumns.odometer && (
+                  <TableCell className="text-gray-600" data-testid={`text-odometer-${vehicle.id}`}>
+                    {vehicle.odometer.toLocaleString()} mi
+                  </TableCell>
+                )}
+                {visibleColumns.age && (
+                  <TableCell className="text-gray-600" data-testid={`text-age-${vehicle.id}`}>
+                    {vehicle.age || 0} days
+                  </TableCell>
+                )}
+                {visibleColumns.actions && (
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-blue-700"
+                            data-testid={`button-view-${vehicle.id}`}
+                          >
+                            <Eye size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <VehicleViewDialog vehicle={vehicle} />
+                      </Dialog>
+                      <Dialog open={editingVehicle?.id === vehicle.id} onOpenChange={(open) => !open && setEditingVehicle(null)}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-blue-700"
+                            onClick={() => setEditingVehicle(vehicle)}
+                            data-testid={`button-edit-${vehicle.id}`}
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                          {editingVehicle && (
+                            <InventoryEditForm 
+                              vehicle={editingVehicle} 
+                              onSuccess={() => setEditingVehicle(null)} 
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-900"
+                        onClick={() => handleDelete(vehicle.id, vehicle.stockNumber)}
+                        disabled={deleteMutation.isPending}
+                        data-testid={`button-delete-${vehicle.id}`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>

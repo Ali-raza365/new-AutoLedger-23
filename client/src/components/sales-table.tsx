@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,22 @@ import { Eye, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Sales } from "@shared/schema";
 import SalesEditForm from "@/components/sales-edit-form";
+import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
 
 interface SalesTableProps {
   sales: Sales[];
   isLoading: boolean;
 }
+
+const SALES_COLUMNS: ColumnDefinition[] = [
+  { key: "dealNumber", label: "Deal #", defaultVisible: true },
+  { key: "customer", label: "Customer", defaultVisible: true },
+  { key: "vehicle", label: "Vehicle", defaultVisible: true },
+  { key: "salesPrice", label: "Sale Price", defaultVisible: true },
+  { key: "deliveryDate", label: "Delivery Date", defaultVisible: true },
+  { key: "salesman", label: "Salesman", defaultVisible: true },
+  { key: "actions", label: "Actions", defaultVisible: true },
+];
 
 function SaleViewDialog({ sale }: { sale: Sales }) {
   const discount = sale.msrp && sale.salesPrice ? (Number(sale.msrp) - Number(sale.salesPrice)) : 0;
@@ -196,6 +207,35 @@ export default function SalesTable({ sales, isLoading }: SalesTableProps) {
   const queryClient = useQueryClient();
   const [editingSale, setEditingSale] = useState<Sales | null>(null);
 
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    SALES_COLUMNS.forEach(col => {
+      initial[col.key] = col.defaultVisible;
+    });
+    return initial;
+  });
+
+  const handleVisibilityChange = (key: string, visible: boolean) => {
+    setVisibleColumns(prev => ({ ...prev, [key]: visible }));
+  };
+
+  const handleHideAll = () => {
+    const hidden: Record<string, boolean> = {};
+    SALES_COLUMNS.forEach(col => {
+      hidden[col.key] = false;
+    });
+    setVisibleColumns(hidden);
+  };
+
+  const handleResetToDefault = () => {
+    const defaults: Record<string, boolean> = {};
+    SALES_COLUMNS.forEach(col => {
+      defaults[col.key] = col.defaultVisible;
+    });
+    setVisibleColumns(defaults);
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -218,92 +258,115 @@ export default function SalesTable({ sales, isLoading }: SalesTableProps) {
 
   return (
     <Card className="overflow-hidden">
+      <div className="flex justify-end p-4 border-b">
+        <ColumnVisibilityDropdown
+          columns={SALES_COLUMNS}
+          visibleColumns={visibleColumns}
+          onVisibilityChange={handleVisibilityChange}
+          onHideAll={handleHideAll}
+          onResetToDefault={handleResetToDefault}
+        />
+      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead>Deal #</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Sale Price</TableHead>
-              <TableHead>Delivery Date</TableHead>
-              <TableHead>Salesman</TableHead>
-              <TableHead>Actions</TableHead>
+              {visibleColumns.dealNumber && <TableHead>Deal #</TableHead>}
+              {visibleColumns.customer && <TableHead>Customer</TableHead>}
+              {visibleColumns.vehicle && <TableHead>Vehicle</TableHead>}
+              {visibleColumns.salesPrice && <TableHead>Sale Price</TableHead>}
+              {visibleColumns.deliveryDate && <TableHead>Delivery Date</TableHead>}
+              {visibleColumns.salesman && <TableHead>Salesman</TableHead>}
+              {visibleColumns.actions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {sales.map((sale) => (
               <TableRow key={sale.id} className="hover:bg-gray-50" data-testid={`row-sale-${sale.id}`}>
-                <TableCell className="font-medium text-primary" data-testid={`text-deal-${sale.id}`}>
-                  {sale.dealNumber}
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium text-gray-900" data-testid={`text-customer-${sale.id}`}>
-                      {sale.firstName} {sale.lastName}
+                {visibleColumns.dealNumber && (
+                  <TableCell className="font-medium text-primary" data-testid={`text-deal-${sale.id}`}>
+                    {sale.dealNumber}
+                  </TableCell>
+                )}
+                {visibleColumns.customer && (
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-gray-900" data-testid={`text-customer-${sale.id}`}>
+                        {sale.firstName} {sale.lastName}
+                      </div>
+                      {sale.customerNumber && (
+                        <div className="text-sm text-gray-500">{sale.customerNumber}</div>
+                      )}
                     </div>
-                    {sale.customerNumber && (
-                      <div className="text-sm text-gray-500">{sale.customerNumber}</div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium text-gray-900" data-testid={`text-stock-${sale.id}`}>
-                      Stock #{sale.stockNumber}
+                  </TableCell>
+                )}
+                {visibleColumns.vehicle && (
+                  <TableCell>
+                    <div>
+                      <div className="font-medium text-gray-900" data-testid={`text-stock-${sale.id}`}>
+                        Stock #{sale.stockNumber}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {sale.newUsed} • {sale.exteriorColor}
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {sale.newUsed} • {sale.exteriorColor}
+                  </TableCell>
+                )}
+                {visibleColumns.salesPrice && (
+                  <TableCell className="font-medium text-gray-900" data-testid={`text-price-${sale.id}`}>
+                    ${Number(sale.salesPrice).toLocaleString()}
+                  </TableCell>
+                )}
+                {visibleColumns.deliveryDate && (
+                  <TableCell className="text-gray-600" data-testid={`text-delivery-${sale.id}`}>
+                    {sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString() : 'Not set'}
+                  </TableCell>
+                )}
+                {visibleColumns.salesman && (
+                  <TableCell className="text-gray-600" data-testid={`text-salesman-${sale.id}`}>
+                    {sale.salesmanName || 'Not assigned'}
+                  </TableCell>
+                )}
+                {visibleColumns.actions && (
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-blue-700"
+                            data-testid={`button-view-${sale.id}`}
+                          >
+                            <Eye size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <SaleViewDialog sale={sale} />
+                      </Dialog>
+                      <Dialog open={editingSale?.id === sale.id} onOpenChange={(open) => !open && setEditingSale(null)}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-blue-700"
+                            onClick={() => setEditingSale(sale)}
+                            data-testid={`button-edit-sale-${sale.id}`}
+                          >
+                            <Edit size={16} />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                          {editingSale && (
+                            <SalesEditForm 
+                              sale={editingSale} 
+                              onSuccess={() => setEditingSale(null)} 
+                            />
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </div>
-                  </div>
-                </TableCell>
-                <TableCell className="font-medium text-gray-900" data-testid={`text-price-${sale.id}`}>
-                  ${Number(sale.salesPrice).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-gray-600" data-testid={`text-delivery-${sale.id}`}>
-                  {sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString() : 'Not set'}
-                </TableCell>
-                <TableCell className="text-gray-600" data-testid={`text-salesman-${sale.id}`}>
-                  {sale.salesmanName || 'Not assigned'}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-blue-700"
-                          data-testid={`button-view-${sale.id}`}
-                        >
-                          <Eye size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <SaleViewDialog sale={sale} />
-                    </Dialog>
-                    <Dialog open={editingSale?.id === sale.id} onOpenChange={(open) => !open && setEditingSale(null)}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary hover:text-blue-700"
-                          onClick={() => setEditingSale(sale)}
-                          data-testid={`button-edit-sale-${sale.id}`}
-                        >
-                          <Edit size={16} />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                        {editingSale && (
-                          <SalesEditForm 
-                            sale={editingSale} 
-                            onSuccess={() => setEditingSale(null)} 
-                          />
-                        )}
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                </TableCell>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
