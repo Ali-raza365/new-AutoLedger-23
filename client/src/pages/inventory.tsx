@@ -8,11 +8,52 @@ import { Plus, Download, Search } from "lucide-react";
 import type { Inventory } from "@shared/schema";
 import InventoryForm from "@/components/inventory-form";
 import InventoryTable from "@/components/inventory-table";
+import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
+
+const INVENTORY_COLUMNS: ColumnDefinition[] = [
+  { key: "stockNumber", label: "Stock #", defaultVisible: true },
+  { key: "vin", label: "VIN", defaultVisible: true },
+  { key: "vehicle", label: "Vehicle", defaultVisible: true },
+  { key: "color", label: "Color", defaultVisible: true },
+  { key: "price", label: "Price", defaultVisible: true },
+  { key: "odometer", label: "Odometer", defaultVisible: true },
+  { key: "age", label: "Age", defaultVisible: true },
+  { key: "actions", label: "Actions", defaultVisible: true },
+];
 
 export default function Inventory() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMake, setSelectedMake] = useState("");
+
+  // Column visibility state
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      initial[col.key] = col.defaultVisible;
+    });
+    return initial;
+  });
+
+  const handleVisibilityChange = (key: string, visible: boolean) => {
+    setVisibleColumns(prev => ({ ...prev, [key]: visible }));
+  };
+
+  const handleHideAll = () => {
+    const hidden: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      hidden[col.key] = false;
+    });
+    setVisibleColumns(hidden);
+  };
+
+  const handleResetToDefault = () => {
+    const defaults: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      defaults[col.key] = col.defaultVisible;
+    });
+    setVisibleColumns(defaults);
+  };
 
   const { data: inventory = [], isLoading } = useQuery<Inventory[]>({
     queryKey: ["/api/inventory"],
@@ -91,11 +132,22 @@ export default function Inventory() {
                   ))}
                 </SelectContent>
               </Select>
+              <ColumnVisibilityDropdown
+                columns={INVENTORY_COLUMNS}
+                visibleColumns={visibleColumns}
+                onVisibilityChange={handleVisibilityChange}
+                onHideAll={handleHideAll}
+                onResetToDefault={handleResetToDefault}
+              />
             </div>
           </div>
 
           {/* Inventory Table */}
-          <InventoryTable inventory={filteredInventory} isLoading={isLoading} />
+          <InventoryTable 
+            inventory={filteredInventory} 
+            isLoading={isLoading}
+            visibleColumns={visibleColumns}
+          />
         </div>
       </main>
     </>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -10,29 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Inventory } from "@shared/schema";
 import InventoryEditForm from "@/components/inventory-edit-form";
-import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
 
 interface InventoryTableProps {
   inventory: Inventory[];
   isLoading: boolean;
+  visibleColumns: Record<string, boolean>;
 }
 
-const INVENTORY_COLUMNS: ColumnDefinition[] = [
-  { key: "stockNumber", label: "Stock #", defaultVisible: true },
-  { key: "vin", label: "VIN", defaultVisible: true },
-  { key: "vehicle", label: "Vehicle", defaultVisible: true },
-  { key: "color", label: "Color", defaultVisible: true },
-  { key: "price", label: "Price", defaultVisible: true },
-  { key: "odometer", label: "Odometer", defaultVisible: true },
-  { key: "age", label: "Age", defaultVisible: true },
-  { key: "actions", label: "Actions", defaultVisible: true },
-];
 
 function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
   const profitMargin = vehicle.markup && vehicle.cost ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1) : '0.0';
   
   return (
-    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-blue-50">
+    <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
       <DialogHeader className="pb-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <div>
@@ -50,11 +40,8 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
       
       <div className="space-y-8 pt-6">
         {/* Vehicle Identification */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center mb-4">
-            <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-            <h3 className="text-xl font-semibold text-gray-900">Vehicle Information</h3>
-          </div>
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Vehicle Information</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-3">
               <div className="flex flex-col">
@@ -86,66 +73,60 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
         </div>
 
         {/* Vehicle Status & Condition */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center mb-4">
-            <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-            <h3 className="text-xl font-semibold text-gray-900">Vehicle Status</h3>
-          </div>
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Vehicle Status</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <div className="text-center p-4 rounded-lg border">
               <div className="mb-2">
                 {vehicle.certified ? (
-                  <Badge className="bg-green-500 text-white px-4 py-2 text-sm font-medium">
+                  <Badge className="px-4 py-2 text-sm font-medium">
                     ✓ Certified Pre-Owned
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="px-4 py-2 text-sm font-medium border-gray-300">
+                  <Badge variant="outline" className="px-4 py-2 text-sm font-medium">
                     Standard Vehicle
                   </Badge>
                 )}
               </div>
               <p className="text-xs text-gray-600">Certification Status</p>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <p className="text-2xl font-bold text-blue-600">{vehicle.odometer.toLocaleString()}</p>
+            <div className="text-center p-4 rounded-lg border">
+              <p className="text-2xl font-bold text-gray-900">{vehicle.odometer.toLocaleString()}</p>
               <p className="text-sm text-gray-600">Miles</p>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg border border-orange-200">
-              <p className="text-2xl font-bold text-orange-600">{vehicle.age || 0}</p>
+            <div className="text-center p-4 rounded-lg border">
+              <p className="text-2xl font-bold text-gray-900">{vehicle.age || 0}</p>
               <p className="text-sm text-gray-600">Days on Lot</p>
             </div>
           </div>
         </div>
         
         {/* Pricing Breakdown */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center mb-4">
-            <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-            <h3 className="text-xl font-semibold text-gray-900">Financial Details</h3>
-          </div>
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Financial Details</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+            <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Listed Price</p>
-              <p className="text-2xl font-bold text-green-600">${Number(vehicle.price).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">${Number(vehicle.price).toLocaleString()}</p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Book Value</p>
-              <p className="text-2xl font-bold text-blue-600">${vehicle.bookValue ? Number(vehicle.bookValue).toLocaleString() : 'N/A'}</p>
+              <p className="text-2xl font-bold text-gray-900">${vehicle.bookValue ? Number(vehicle.bookValue).toLocaleString() : 'N/A'}</p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-lg border border-red-200">
+            <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Our Cost</p>
-              <p className="text-2xl font-bold text-red-600">${Number(vehicle.cost).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">${Number(vehicle.cost).toLocaleString()}</p>
             </div>
-            <div className="p-4 bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg border border-purple-200">
+            <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Markup</p>
-              <p className="text-2xl font-bold text-purple-600">${vehicle.markup ? Number(vehicle.markup).toLocaleString() : '0'}</p>
+              <p className="text-2xl font-bold text-gray-900">${vehicle.markup ? Number(vehicle.markup).toLocaleString() : '0'}</p>
               <p className="text-xs text-gray-500 mt-1">{profitMargin}% margin</p>
             </div>
           </div>
         </div>
         
         {/* Record Information */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+        <div className="bg-gray-50 rounded-lg p-4 border">
           <div className="flex items-center text-gray-600">
             <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
             <span className="text-sm">Added to inventory: </span>
@@ -159,39 +140,11 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
   );
 }
 
-export default function InventoryTable({ inventory, isLoading }: InventoryTableProps) {
+export default function InventoryTable({ inventory, isLoading, visibleColumns }: InventoryTableProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingVehicle, setEditingVehicle] = useState<Inventory | null>(null);
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    INVENTORY_COLUMNS.forEach(col => {
-      initial[col.key] = col.defaultVisible;
-    });
-    return initial;
-  });
-
-  const handleVisibilityChange = (key: string, visible: boolean) => {
-    setVisibleColumns(prev => ({ ...prev, [key]: visible }));
-  };
-
-  const handleHideAll = () => {
-    const hidden: Record<string, boolean> = {};
-    INVENTORY_COLUMNS.forEach(col => {
-      hidden[col.key] = false;
-    });
-    setVisibleColumns(hidden);
-  };
-
-  const handleResetToDefault = () => {
-    const defaults: Record<string, boolean> = {};
-    INVENTORY_COLUMNS.forEach(col => {
-      defaults[col.key] = col.defaultVisible;
-    });
-    setVisibleColumns(defaults);
-  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/inventory/${id}`),
@@ -240,15 +193,6 @@ export default function InventoryTable({ inventory, isLoading }: InventoryTableP
 
   return (
     <Card className="overflow-hidden">
-      <div className="flex justify-end p-4 border-b">
-        <ColumnVisibilityDropdown
-          columns={INVENTORY_COLUMNS}
-          visibleColumns={visibleColumns}
-          onVisibilityChange={handleVisibilityChange}
-          onHideAll={handleHideAll}
-          onResetToDefault={handleResetToDefault}
-        />
-      </div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
