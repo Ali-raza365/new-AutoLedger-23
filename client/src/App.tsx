@@ -17,9 +17,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 function Router() {
   return (
     <Switch>
+      {/* Public routes */}
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
-      <Route path="/">
+
+      {/* Protected routes */}
+      <Route>
         <ProtectedRoute>
           <div className="flex h-screen bg-gray-50">
             <Sidebar />
@@ -39,7 +42,6 @@ function Router() {
     </Switch>
   );
 }
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
