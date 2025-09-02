@@ -1,70 +1,74 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, decimal, boolean, timestamp } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { ObjectId } from "mongodb";
 
-export const inventory = pgTable("inventory", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  stockNumber: text("stock_number").notNull().unique(),
-  vin: varchar("vin", { length: 17 }).notNull().unique(),
-  year: integer("year").notNull(),
-  make: text("make").notNull(),
-  model: text("model").notNull(),
-  series: text("series"),
-  color: text("color").notNull(),
-  certified: boolean("certified").default(false),
-  body: text("body").notNull(),
-  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  bookValue: decimal("book_value", { precision: 10, scale: 2 }),
-  cost: decimal("cost", { precision: 10, scale: 2 }),
-  markup: decimal("markup", { precision: 10, scale: 2 }),
-  odometer: integer("odometer").notNull(),
-  age: integer("age"),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
+// MongoDB Document interfaces
+export interface InventoryDocument {
+  _id?: ObjectId;
+  stockNumber: string;
+  vin: string;
+  year: number;
+  make: string;
+  model: string;
+  series?: string;
+  color: string;
+  certified: boolean;
+  body: string;
+  price: string;
+  bookValue?: string | null;
+  cost?: string | null;
+  markup?: string | null;
+  odometer: number;
+  age?: number | null;
+  createdAt: Date;
+}
 
-export const sales = pgTable("sales", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  dealNumber: text("deal_number").notNull().unique(),
-  customerNumber: text("customer_number"),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  zip: text("zip"),
-  exteriorColor: text("exterior_color"),
-  newUsed: text("new_used").notNull(),
-  stockNumber: text("stock_number").notNull(),
-  deliveryDate: timestamp("delivery_date"),
-  deliveryMileage: integer("delivery_mileage"),
-  trade1Vin: varchar("trade1_vin", { length: 17 }),
-  trade1Year: integer("trade1_year"),
-  trade1Make: text("trade1_make"),
-  trade1Model: text("trade1_model"),
-  trade1Odometer: integer("trade1_odometer"),
-  trade1ACV: decimal("trade1_acv", { precision: 10, scale: 2 }),
-  trade2Vin: varchar("trade2_vin", { length: 17 }),
-  trade2Year: integer("trade2_year"),
-  trade2Make: text("trade2_make"),
-  trade2Model: text("trade2_model"),
-  trade2Odometer: integer("trade2_odometer"),
-  trade2ACV: decimal("trade2_acv", { precision: 10, scale: 2 }),
-  closingManagerNumber: text("closing_manager_number"),
-  closingManagerName: text("closing_manager_name"),
-  financeManagerNumber: text("finance_manager_number"),
-  financeManagerName: text("finance_manager_name"),
-  salesmanNumber: text("salesman_number"),
-  salesmanName: text("salesman_name"),
-  msrp: decimal("msrp", { precision: 10, scale: 2 }),
-  listPrice: decimal("list_price", { precision: 10, scale: 2 }),
-  salesPrice: decimal("sales_price", { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
+export interface SalesDocument {
+  _id?: ObjectId;
+  dealNumber: string;
+  customerNumber?: string | null;
+  firstName: string;
+  lastName: string;
+  zip?: string | null;
+  exteriorColor?: string | null;
+  newUsed: string;
+  stockNumber: string;
+  deliveryDate?: Date | null;
+  deliveryMileage?: number | null;
+  trade1Vin?: string | null;
+  trade1Year?: number | null;
+  trade1Make?: string | null;
+  trade1Model?: string | null;
+  trade1Odometer?: number | null;
+  trade1ACV?: string | null;
+  trade2Vin?: string | null;
+  trade2Year?: number | null;
+  trade2Make?: string | null;
+  trade2Model?: string | null;
+  trade2Odometer?: number | null;
+  trade2ACV?: string | null;
+  closingManagerNumber?: string | null;
+  closingManagerName?: string | null;
+  financeManagerNumber?: string | null;
+  financeManagerName?: string | null;
+  salesmanNumber?: string | null;
+  salesmanName?: string | null;
+  msrp?: string | null;
+  listPrice?: string | null;
+  salesPrice: string;
+  createdAt: Date;
+}
 
-export const insertInventorySchema = createInsertSchema(inventory).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  year: z.number().min(1900).max(2030),
+// Zod validation schemas for client-side form validation
+export const insertInventorySchema = z.object({
+  stockNumber: z.string().min(1, "Stock number is required"),
   vin: z.string().length(17, "VIN must be exactly 17 characters"),
+  year: z.number().min(1900).max(2030),
+  make: z.string().min(1, "Make is required"),
+  model: z.string().min(1, "Model is required"),
+  series: z.string().optional(),
+  color: z.string().min(1, "Color is required"),
+  certified: z.boolean().default(false),
+  body: z.string().min(1, "Body type is required"),
   price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Price must be a positive number"),
   bookValue: z.string().optional().nullable(),
   cost: z.string().optional().nullable(),
@@ -73,20 +77,97 @@ export const insertInventorySchema = createInsertSchema(inventory).omit({
   age: z.number().optional().nullable(),
 });
 
-export const insertSalesSchema = createInsertSchema(sales).omit({
-  id: true,
-  createdAt: true,
-}).extend({
-  salesPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Sales price must be positive"),
+export const insertSalesSchema = z.object({
+  dealNumber: z.string().min(1, "Deal number is required"),
+  customerNumber: z.string().optional(),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  zip: z.string().optional(),
+  exteriorColor: z.string().optional(),
+  newUsed: z.string().min(1, "New/Used status is required"),
+  stockNumber: z.string().min(1, "Stock number is required"),
+  deliveryDate: z.date().optional(),
+  deliveryMileage: z.number().optional(),
+  trade1Vin: z.string().length(17).optional().or(z.literal("")),
+  trade1Year: z.number().optional(),
+  trade1Make: z.string().optional(),
+  trade1Model: z.string().optional(),
+  trade1Odometer: z.number().optional(),
+  trade1ACV: z.string().optional().nullable(),
+  trade2Vin: z.string().length(17).optional().or(z.literal("")),
+  trade2Year: z.number().optional(),
+  trade2Make: z.string().optional(),
+  trade2Model: z.string().optional(),
+  trade2Odometer: z.number().optional(),
+  trade2ACV: z.string().optional().nullable(),
+  closingManagerNumber: z.string().optional(),
+  closingManagerName: z.string().optional(),
+  financeManagerNumber: z.string().optional(),
+  financeManagerName: z.string().optional(),
+  salesmanNumber: z.string().optional(),
+  salesmanName: z.string().optional(),
   msrp: z.string().optional().nullable(),
   listPrice: z.string().optional().nullable(),
-  trade1Vin: z.string().length(17).optional().or(z.literal("")),
-  trade2Vin: z.string().length(17).optional().or(z.literal("")),
-  trade1ACV: z.string().optional().nullable(),
-  trade2ACV: z.string().optional().nullable(),
+  salesPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Sales price must be positive"),
 });
 
+// Client-facing types (without MongoDB ObjectId)
+export interface Inventory {
+  id: string;
+  stockNumber: string;
+  vin: string;
+  year: number;
+  make: string;
+  model: string;
+  series?: string | null;
+  color: string;
+  certified: boolean;
+  body: string;
+  price: string;
+  bookValue?: string | null;
+  cost?: string | null;
+  markup?: string | null;
+  odometer: number;
+  age?: number | null;
+  createdAt: Date;
+}
+
+export interface Sales {
+  id: string;
+  dealNumber: string;
+  customerNumber?: string | null;
+  firstName: string;
+  lastName: string;
+  zip?: string | null;
+  exteriorColor?: string | null;
+  newUsed: string;
+  stockNumber: string;
+  deliveryDate?: Date | null;
+  deliveryMileage?: number | null;
+  trade1Vin?: string | null;
+  trade1Year?: number | null;
+  trade1Make?: string | null;
+  trade1Model?: string | null;
+  trade1Odometer?: number | null;
+  trade1ACV?: string | null;
+  trade2Vin?: string | null;
+  trade2Year?: number | null;
+  trade2Make?: string | null;
+  trade2Model?: string | null;
+  trade2Odometer?: number | null;
+  trade2ACV?: string | null;
+  closingManagerNumber?: string | null;
+  closingManagerName?: string | null;
+  financeManagerNumber?: string | null;
+  financeManagerName?: string | null;
+  salesmanNumber?: string | null;
+  salesmanName?: string | null;
+  msrp?: string | null;
+  listPrice?: string | null;
+  salesPrice: string;
+  createdAt: Date;
+}
+
+// Type inference from Zod schemas
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
-export type Inventory = typeof inventory.$inferSelect;
 export type InsertSales = z.infer<typeof insertSalesSchema>;
-export type Sales = typeof sales.$inferSelect;

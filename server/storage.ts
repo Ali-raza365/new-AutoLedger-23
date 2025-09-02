@@ -1,5 +1,12 @@
-import { type Inventory, type InsertInventory, type Sales, type InsertSales } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { ObjectId } from "mongodb";
+import { 
+  type Inventory, 
+  type InsertInventory, 
+  type Sales, 
+  type InsertSales,
+  type InventoryDocument,
+  type SalesDocument
+} from "@shared/schema";
 
 export interface IStorage {
   // Inventory methods
@@ -23,9 +30,9 @@ export interface IStorage {
   searchSales(query: string): Promise<Sales[]>;
 }
 
-export class MemStorage implements IStorage {
-  private inventory: Map<string, Inventory>;
-  private sales: Map<string, Sales>;
+class MongoDBCompatibleStorage implements IStorage {
+  private inventory: Map<string, InventoryDocument>;
+  private sales: Map<string, SalesDocument>;
 
   constructor() {
     this.inventory = new Map();
@@ -35,9 +42,9 @@ export class MemStorage implements IStorage {
 
   private initializeDummyData() {
     // Add dummy inventory data
-    const dummyInventory = [
+    const dummyInventory: InventoryDocument[] = [
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         stockNumber: "A2024001",
         vin: "1HGBH41JXMN109186",
         year: 2023,
@@ -45,7 +52,7 @@ export class MemStorage implements IStorage {
         model: "Accord",
         series: "LX",
         color: "Silver Metallic",
-        certified: "Yes",
+        certified: true,
         body: "Sedan",
         price: "28450",
         bookValue: "26500",
@@ -56,7 +63,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         stockNumber: "B2024002",
         vin: "3GNKBKRS5NS123456",
         year: 2022,
@@ -64,7 +71,7 @@ export class MemStorage implements IStorage {
         model: "Equinox",
         series: "LS",
         color: "Pearl White",
-        certified: "No",
+        certified: false,
         body: "SUV",
         price: "32995",
         bookValue: "30200",
@@ -75,7 +82,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         stockNumber: "C2024003",
         vin: "1FA6P8TH5N5123789",
         year: 2024,
@@ -83,7 +90,7 @@ export class MemStorage implements IStorage {
         model: "Mustang",
         series: "GT",
         color: "Racing Red",
-        certified: "Yes",
+        certified: true,
         body: "Coupe",
         price: "45750",
         bookValue: "43200",
@@ -94,7 +101,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         stockNumber: "D2024004",
         vin: "JM1CX1GL5N0456123",
         year: 2023,
@@ -102,7 +109,7 @@ export class MemStorage implements IStorage {
         model: "CX-5",
         series: "Touring",
         color: "Deep Crystal Blue",
-        certified: "Yes",
+        certified: true,
         body: "SUV",
         price: "34200",
         bookValue: "32100",
@@ -113,7 +120,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         stockNumber: "E2024005",
         vin: "5YFBURHE5NP789456",
         year: 2022,
@@ -121,7 +128,7 @@ export class MemStorage implements IStorage {
         model: "Camry",
         series: "XLE",
         color: "Midnight Black",
-        certified: "No",
+        certified: false,
         body: "Sedan",
         price: "29850",
         bookValue: "27900",
@@ -134,9 +141,9 @@ export class MemStorage implements IStorage {
     ];
 
     // Add dummy sales data
-    const dummySales = [
+    const dummySales: SalesDocument[] = [
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         dealNumber: "D2024-001",
         customerNumber: "C001",
         firstName: "John",
@@ -171,7 +178,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         dealNumber: "D2024-002",
         customerNumber: "C002",
         firstName: "Emily",
@@ -206,7 +213,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
       },
       {
-        id: randomUUID(),
+        _id: new ObjectId(),
         dealNumber: "D2024-003",
         customerNumber: "C003",
         firstName: "Michael",
@@ -242,45 +249,112 @@ export class MemStorage implements IStorage {
       }
     ];
 
-    // Add to maps
+    // Add to maps using ObjectId as string key
     dummyInventory.forEach(item => {
-      this.inventory.set(item.id, item as Inventory);
+      this.inventory.set(item._id!.toString(), item);
     });
 
     dummySales.forEach(item => {
-      this.sales.set(item.id, item as Sales);
+      this.sales.set(item._id!.toString(), item);
     });
+  }
+
+  private documentToInventory(doc: InventoryDocument): Inventory {
+    return {
+      id: doc._id!.toString(),
+      stockNumber: doc.stockNumber,
+      vin: doc.vin,
+      year: doc.year,
+      make: doc.make,
+      model: doc.model,
+      series: doc.series,
+      color: doc.color,
+      certified: doc.certified,
+      body: doc.body,
+      price: doc.price,
+      bookValue: doc.bookValue,
+      cost: doc.cost,
+      markup: doc.markup,
+      odometer: doc.odometer,
+      age: doc.age,
+      createdAt: doc.createdAt
+    };
+  }
+
+  private documentToSales(doc: SalesDocument): Sales {
+    return {
+      id: doc._id!.toString(),
+      dealNumber: doc.dealNumber,
+      customerNumber: doc.customerNumber,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      zip: doc.zip,
+      exteriorColor: doc.exteriorColor,
+      newUsed: doc.newUsed,
+      stockNumber: doc.stockNumber,
+      deliveryDate: doc.deliveryDate,
+      deliveryMileage: doc.deliveryMileage,
+      trade1Vin: doc.trade1Vin,
+      trade1Year: doc.trade1Year,
+      trade1Make: doc.trade1Make,
+      trade1Model: doc.trade1Model,
+      trade1Odometer: doc.trade1Odometer,
+      trade1ACV: doc.trade1ACV,
+      trade2Vin: doc.trade2Vin,
+      trade2Year: doc.trade2Year,
+      trade2Make: doc.trade2Make,
+      trade2Model: doc.trade2Model,
+      trade2Odometer: doc.trade2Odometer,
+      trade2ACV: doc.trade2ACV,
+      closingManagerNumber: doc.closingManagerNumber,
+      closingManagerName: doc.closingManagerName,
+      financeManagerNumber: doc.financeManagerNumber,
+      financeManagerName: doc.financeManagerName,
+      salesmanNumber: doc.salesmanNumber,
+      salesmanName: doc.salesmanName,
+      msrp: doc.msrp,
+      listPrice: doc.listPrice,
+      salesPrice: doc.salesPrice,
+      createdAt: doc.createdAt
+    };
   }
 
   // Inventory methods
   async getInventory(): Promise<Inventory[]> {
-    return Array.from(this.inventory.values());
+    const docs = Array.from(this.inventory.values());
+    return docs.map(doc => this.documentToInventory(doc));
   }
 
   async getInventoryItem(id: string): Promise<Inventory | undefined> {
-    return this.inventory.get(id);
+    const doc = this.inventory.get(id);
+    return doc ? this.documentToInventory(doc) : undefined;
   }
 
   async getInventoryByVin(vin: string): Promise<Inventory | undefined> {
-    return Array.from(this.inventory.values()).find(item => item.vin === vin);
+    const docs = Array.from(this.inventory.values());
+    const doc = docs.find(item => item.vin === vin);
+    return doc ? this.documentToInventory(doc) : undefined;
   }
 
   async getInventoryByStockNumber(stockNumber: string): Promise<Inventory | undefined> {
-    return Array.from(this.inventory.values()).find(item => item.stockNumber === stockNumber);
+    const docs = Array.from(this.inventory.values());
+    const doc = docs.find(item => item.stockNumber === stockNumber);
+    return doc ? this.documentToInventory(doc) : undefined;
   }
 
   async createInventoryItem(insertItem: InsertInventory): Promise<Inventory> {
-    const id = randomUUID();
-    const item: Inventory = {
+    const id = new ObjectId();
+    const document: InventoryDocument = {
+      _id: id,
       ...insertItem,
-      id,
       createdAt: new Date(),
       markup: insertItem.price && insertItem.cost 
         ? String(Number(insertItem.price) - Number(insertItem.cost))
         : insertItem.markup || null
     };
-    this.inventory.set(id, item);
-    return item;
+
+    this.inventory.set(id.toString(), document);
+    return this.documentToInventory(document);
   }
 
   async updateInventoryItem(id: string, updateData: Partial<InsertInventory>): Promise<Inventory> {
@@ -289,7 +363,7 @@ export class MemStorage implements IStorage {
       throw new Error("Inventory item not found");
     }
 
-    const updated: Inventory = {
+    const updated: InventoryDocument = {
       ...existing,
       ...updateData,
       markup: updateData.price && updateData.cost 
@@ -298,7 +372,7 @@ export class MemStorage implements IStorage {
     };
     
     this.inventory.set(id, updated);
-    return updated;
+    return this.documentToInventory(updated);
   }
 
   async deleteInventoryItem(id: string): Promise<boolean> {
@@ -307,23 +381,25 @@ export class MemStorage implements IStorage {
 
   // Sales methods
   async getSales(): Promise<Sales[]> {
-    return Array.from(this.sales.values());
+    const docs = Array.from(this.sales.values());
+    return docs.map(doc => this.documentToSales(doc));
   }
 
   async getSalesItem(id: string): Promise<Sales | undefined> {
-    return this.sales.get(id);
+    const doc = this.sales.get(id);
+    return doc ? this.documentToSales(doc) : undefined;
   }
 
   async createSalesItem(insertItem: InsertSales): Promise<Sales> {
-    const id = randomUUID();
-    const item: Sales = {
+    const id = new ObjectId();
+    const document: SalesDocument = {
+      _id: id,
       ...insertItem,
-      customerNumber: insertItem.customerNumber || null,
-      id,
       createdAt: new Date(),
     };
-    this.sales.set(id, item);
-    return item;
+
+    this.sales.set(id.toString(), document);
+    return this.documentToSales(document);
   }
 
   async updateSalesItem(id: string, updateData: Partial<InsertSales>): Promise<Sales> {
@@ -332,9 +408,9 @@ export class MemStorage implements IStorage {
       throw new Error("Sales item not found");
     }
 
-    const updated: Sales = { ...existing, ...updateData };
+    const updated: SalesDocument = { ...existing, ...updateData };
     this.sales.set(id, updated);
-    return updated;
+    return this.documentToSales(updated);
   }
 
   async deleteSalesItem(id: string): Promise<boolean> {
@@ -343,29 +419,33 @@ export class MemStorage implements IStorage {
 
   // Search methods
   async searchInventory(query: string): Promise<Inventory[]> {
-    const items = Array.from(this.inventory.values());
+    const docs = Array.from(this.inventory.values());
     const lowerQuery = query.toLowerCase();
     
-    return items.filter(item => 
+    const filtered = docs.filter(item => 
       item.vin.toLowerCase().includes(lowerQuery) ||
       item.make.toLowerCase().includes(lowerQuery) ||
       item.model.toLowerCase().includes(lowerQuery) ||
       item.stockNumber.toLowerCase().includes(lowerQuery) ||
       item.color.toLowerCase().includes(lowerQuery)
     );
+    
+    return filtered.map(doc => this.documentToInventory(doc));
   }
 
   async searchSales(query: string): Promise<Sales[]> {
-    const items = Array.from(this.sales.values());
+    const docs = Array.from(this.sales.values());
     const lowerQuery = query.toLowerCase();
     
-    return items.filter(item => 
+    const filtered = docs.filter(item => 
       item.dealNumber.toLowerCase().includes(lowerQuery) ||
       item.firstName.toLowerCase().includes(lowerQuery) ||
       item.lastName.toLowerCase().includes(lowerQuery) ||
-      item.customerNumber?.toLowerCase().includes(lowerQuery)
+      (item.customerNumber && item.customerNumber.toLowerCase().includes(lowerQuery))
     );
+    
+    return filtered.map(doc => this.documentToSales(doc));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MongoDBCompatibleStorage();
