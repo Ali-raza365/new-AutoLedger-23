@@ -565,51 +565,63 @@ class MongoDBCompatibleStorage implements IStorage {
   private initializeDefaultSettings() {
     const defaultSettings: SettingsDocument = {
       _id: new ObjectId(),
-      make: ["FORD"],
-      sources: ["KBB", "STRAIGHT PURCHASE", "TRADE IN", "LEASE BUY OUT"],
-      years: [2021, 2022, 2023, 2024],
-      status: ["BCA", "IN STOCK", "RECALL", "SOLD", "HOLD", "IN-TRANSIT", "RECIEVED", "DEALER TRADE", "UPFIT", "DEMO", "JEEP DOC", "BROKER DEAL"],
+      make: ["Ford", "Toyota", "Honda", "Chevrolet", "Nissan", "BMW", "Mercedes-Benz", "Audi", "Hyundai", "Kia", "Volkswagen", "Subaru", "Mazda", "Lexus", "Acura", "Infiniti", "Cadillac", "Lincoln", "Buick", "GMC", "Ram", "Jeep", "Dodge", "Chrysler"],
+      sources: ["Kelley Blue Book", "Direct Purchase", "Trade-In", "Lease Buyout", "Auction", "Fleet Sale", "Wholesale", "Consignment"],
+      years: [2020, 2021, 2022, 2023, 2024, 2025],
+      status: ["Available", "In Stock", "Sold", "Reserved", "In Transit", "Received", "Pending Inspection", "Dealer Trade", "Service Required", "Demo Vehicle", "Wholesale", "Auction", "On Hold", "Recall"],
       model: [
         {
-          name: "BRONCO",
-          Series: ["Badlands", "Base", "Black Diamond", "WILDTRACK", "OUTER BANKS", "ADVANCED", "BIG BEND"]
+          name: "Bronco",
+          Series: ["Base", "Big Bend", "Black Diamond", "Outer Banks", "Badlands", "Wildtrak", "Raptor"]
         },
         {
-          name: "BRONCO SPORT", 
-          Series: ["Badlands", "Base", "Big Bend", "Big Bend (TM)", "Outer Banks", "Outer Banks (TM)"]
+          name: "Bronco Sport",
+          Series: ["Base", "Big Bend", "Outer Banks", "Badlands"]
         },
         {
           name: "F-150",
-          Series: ["Lariat", "Platinum", "RAPTOR", "Tremor", "XL", "XLT", "KING RANCH", "BASE", "LIMITED"]
+          Series: ["Regular Cab", "SuperCab", "SuperCrew", "XL", "XLT", "Lariat", "King Ranch", "Platinum", "Limited", "Raptor", "Lightning"]
         },
         {
-          name: "MUSTANG",
-          Series: ["EcoBoast Fastback", "EcoBoast Premium Fastback", "GT Fastback", "P8C-301A", "P8C-400A", "GT-COUPE", "GT-PREMIUM"]
+          name: "Mustang",
+          Series: ["EcoBoost", "EcoBoost Premium", "GT", "GT Premium", "Mach 1", "Shelby GT350", "Shelby GT500"]
+        },
+        {
+          name: "Explorer",
+          Series: ["Base", "XLT", "Limited", "Platinum", "ST", "King Ranch"]
+        },
+        {
+          name: "Escape",
+          Series: ["S", "SE", "SEL", "Titanium"]
+        },
+        {
+          name: "Edge",
+          Series: ["SE", "SEL", "Titanium", "ST"]
         }
       ],
       colors: [
-        {code: "PUM", name: "AGATE BLACK"},
-        {code: "PDR", name: "AVALANCHE"},
-        {code: "PYZ", name: "OXFORD WHITE"},
-        {code: "PAZ", name: "STAR WHITE"},
-        {code: "PA3", name: "SPACE WHITE"},
-        {code: "PG1", name: "SHADOW BLACK"},
-        {code: "PHY", name: "DARK MATTER PC"},
-        {code: "PM7", name: "CARBONIZED GRAY"},
-        {code: "PUJ", name: "STERLING GRAY"},
-        {code: "PJS", name: "ICONIC SILVER"},
-        {code: "PTN", name: "SILVER GREY"},
-        {code: "PNE", name: "FIGHTER JET GRAY"},
-        {code: "PAE", name: "GRABBER BLUE"},
-        {code: "PK1", name: "VAPOR BLUE"},
-        {code: "PAB", name: "BLUE TINTED CLEARCOAT"},
-        {code: "PE7", name: "VELOCITY BLUE"},
-        {code: "PLK", name: "DARK BLUE"},
-        {code: "PL8", name: "CINNABAR RED"},
-        {code: "PD4", name: "RAPID RED MET"},
-        {code: "PPQ", name: "RACE RED"},
-        {code: "PCN", name: "CODE ORANGE"},
-        {code: "PSB", name: "CYBER ORANGE"}
+        {code: "PUM", name: "Agate Black"},
+        {code: "PDR", name: "Avalanche"},
+        {code: "PYZ", name: "Oxford White"},
+        {code: "PAZ", name: "Star White"},
+        {code: "PA3", name: "Space White"},
+        {code: "PG1", name: "Shadow Black"},
+        {code: "PHY", name: "Dark Matter"},
+        {code: "PM7", name: "Carbonized Gray"},
+        {code: "PUJ", name: "Sterling Gray"},
+        {code: "PJS", name: "Iconic Silver"},
+        {code: "PTN", name: "Silver Gray"},
+        {code: "PNE", name: "Fighter Jet Gray"},
+        {code: "PAE", name: "Grabber Blue"},
+        {code: "PK1", name: "Vapor Blue"},
+        {code: "PAB", name: "Blue Tinted Clearcoat"},
+        {code: "PE7", name: "Velocity Blue"},
+        {code: "PLK", name: "Dark Blue"},
+        {code: "PL8", name: "Cinnabar Red"},
+        {code: "PD4", name: "Rapid Red Metallic"},
+        {code: "PPQ", name: "Race Red"},
+        {code: "PCN", name: "Code Orange"},
+        {code: "PSB", name: "Cyber Orange"}
       ],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -981,51 +993,63 @@ class MongoDBStorage implements IStorage {
 
     const defaultSettings: SettingsDocument = {
       _id: new ObjectId(),
-      make: ["FORD"],
-      sources: ["KBB", "STRAIGHT PURCHASE", "TRADE IN", "LEASE BUY OUT"],
-      years: [2021, 2022, 2023, 2024],
-      status: ["BCA", "IN STOCK", "RECALL", "SOLD", "HOLD", "IN-TRANSIT", "RECIEVED", "DEALER TRADE", "UPFIT", "DEMO", "JEEP DOC", "BROKER DEAL"],
+      make: ["Ford", "Toyota", "Honda", "Chevrolet", "Nissan", "BMW", "Mercedes-Benz", "Audi", "Hyundai", "Kia", "Volkswagen", "Subaru", "Mazda", "Lexus", "Acura", "Infiniti", "Cadillac", "Lincoln", "Buick", "GMC", "Ram", "Jeep", "Dodge", "Chrysler"],
+      sources: ["Kelley Blue Book", "Direct Purchase", "Trade-In", "Lease Buyout", "Auction", "Fleet Sale", "Wholesale", "Consignment"],
+      years: [2020, 2021, 2022, 2023, 2024, 2025],
+      status: ["Available", "In Stock", "Sold", "Reserved", "In Transit", "Received", "Pending Inspection", "Dealer Trade", "Service Required", "Demo Vehicle", "Wholesale", "Auction", "On Hold", "Recall"],
       model: [
         {
-          name: "BRONCO",
-          Series: ["Badlands", "Base", "Black Diamond", "WILDTRACK", "OUTER BANKS", "ADVANCED", "BIG BEND"]
+          name: "Bronco",
+          Series: ["Base", "Big Bend", "Black Diamond", "Outer Banks", "Badlands", "Wildtrak", "Raptor"]
         },
         {
-          name: "BRONCO SPORT",
-          Series: ["Badlands", "Base", "Big Bend", "Big Bend (TM)", "Outer Banks", "Outer Banks (TM)"]
+          name: "Bronco Sport",
+          Series: ["Base", "Big Bend", "Outer Banks", "Badlands"]
         },
         {
           name: "F-150",
-          Series: ["Lariat", "Platinum", "RAPTOR", "Tremor", "XL", "XLT", "KING RANCH", "BASE", "LIMITED"]
+          Series: ["Regular Cab", "SuperCab", "SuperCrew", "XL", "XLT", "Lariat", "King Ranch", "Platinum", "Limited", "Raptor", "Lightning"]
         },
         {
-          name: "MUSTANG",
-          Series: ["EcoBoast Fastback", "EcoBoast Premium Fastback", "GT Fastback", "P8C-301A", "P8C-400A", "GT-COUPE", "GT-PREMIUM"]
+          name: "Mustang",
+          Series: ["EcoBoost", "EcoBoost Premium", "GT", "GT Premium", "Mach 1", "Shelby GT350", "Shelby GT500"]
+        },
+        {
+          name: "Explorer",
+          Series: ["Base", "XLT", "Limited", "Platinum", "ST", "King Ranch"]
+        },
+        {
+          name: "Escape",
+          Series: ["S", "SE", "SEL", "Titanium"]
+        },
+        {
+          name: "Edge",
+          Series: ["SE", "SEL", "Titanium", "ST"]
         }
       ],
       colors: [
-        {code: "PUM", name: "AGATE BLACK"},
-        {code: "PDR", name: "AVALANCHE"},
-        {code: "PYZ", name: "OXFORD WHITE"},
-        {code: "PAZ", name: "STAR WHITE"},
-        {code: "PA3", name: "SPACE WHITE"},
-        {code: "PG1", name: "SHADOW BLACK"},
-        {code: "PHY", name: "DARK MATTER PC"},
-        {code: "PM7", name: "CARBONIZED GRAY"},
-        {code: "PUJ", name: "STERLING GRAY"},
-        {code: "PJS", name: "ICONIC SILVER"},
-        {code: "PTN", name: "SILVER GREY"},
-        {code: "PNE", name: "FIGHTER JET GRAY"},
-        {code: "PAE", name: "GRABBER BLUE"},
-        {code: "PK1", name: "VAPOR BLUE"},
-        {code: "PAB", name: "BLUE TINTED CLEARCOAT"},
-        {code: "PE7", name: "VELOCITY BLUE"},
-        {code: "PLK", name: "DARK BLUE"},
-        {code: "PL8", name: "CINNABAR RED"},
-        {code: "PD4", name: "RAPID RED MET"},
-        {code: "PPQ", name: "RACE RED"},
-        {code: "PCN", name: "CODE ORANGE"},
-        {code: "PSB", name: "CYBER ORANGE"}
+        {code: "PUM", name: "Agate Black"},
+        {code: "PDR", name: "Avalanche"},
+        {code: "PYZ", name: "Oxford White"},
+        {code: "PAZ", name: "Star White"},
+        {code: "PA3", name: "Space White"},
+        {code: "PG1", name: "Shadow Black"},
+        {code: "PHY", name: "Dark Matter"},
+        {code: "PM7", name: "Carbonized Gray"},
+        {code: "PUJ", name: "Sterling Gray"},
+        {code: "PJS", name: "Iconic Silver"},
+        {code: "PTN", name: "Silver Gray"},
+        {code: "PNE", name: "Fighter Jet Gray"},
+        {code: "PAE", name: "Grabber Blue"},
+        {code: "PK1", name: "Vapor Blue"},
+        {code: "PAB", name: "Blue Tinted Clearcoat"},
+        {code: "PE7", name: "Velocity Blue"},
+        {code: "PLK", name: "Dark Blue"},
+        {code: "PL8", name: "Cinnabar Red"},
+        {code: "PD4", name: "Rapid Red Metallic"},
+        {code: "PPQ", name: "Race Red"},
+        {code: "PCN", name: "Code Orange"},
+        {code: "PSB", name: "Cyber Orange"}
       ],
       createdAt: new Date(),
       updatedAt: new Date(),
