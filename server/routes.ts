@@ -132,18 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/inventory/:id", authenticateToken, requireAnyRole, async (req, res) => {
-    try {
-      const item = await storage.getInventoryItem(req.params.id);
-      if (!item) {
-        return res.status(404).json({ message: "Inventory item not found" });
-      }
-      res.json(item);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch inventory item" });
-    }
-  });
-
   app.get("/api/inventory/vin/:vin", authenticateToken, requireAnyRole, async (req, res) => {
     try {
       const item = await storage.getInventoryByVin(req.params.vin);
@@ -153,6 +141,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(item);
     } catch (error) {
       res.status(500).json({ message: "Failed to search by VIN" });
+    }
+  });
+
+  app.get("/api/inventory/:id", authenticateToken, requireAnyRole, async (req, res) => {
+    try {
+      const item = await storage.getInventoryItem(req.params.id);
+      if (!item) {
+        return res.status(404).json({ message: "Inventory item not found" });
+      }
+      res.json(item);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch inventory item" });
     }
   });
 
