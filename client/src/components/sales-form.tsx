@@ -60,7 +60,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
   });
 
   const searchVinMutation = useMutation({
-    mutationFn: (vin: string) => fetch(`/api/inventory/vin/${vin}`),
+    mutationFn: (vin: string) => apiRequest(`/api/inventory/vin/${vin}`),
     onSuccess: async (response) => {
       if (response.ok) {
         const vehicle: Inventory = await response.json();
