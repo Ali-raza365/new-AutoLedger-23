@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, MongoClient, Db, Collection } from "mongodb";
 import { 
   type Inventory, 
   type InsertInventory, 
@@ -533,4 +533,339 @@ class MongoDBCompatibleStorage implements IStorage {
   }
 }
 
-export const storage = new MongoDBCompatibleStorage();
+class MongoDBStorage implements IStorage {
+  private client: MongoClient;
+  private db: Db;
+  private users: Collection<UserDocument>;
+  private inventory: Collection<InventoryDocument>;
+  private sales: Collection<SalesDocument>;
+
+  constructor(mongoUrl: string, databaseName: string = "dealerpro") {
+    this.client = new MongoClient(mongoUrl);
+    this.db = this.client.db(databaseName);
+    this.users = this.db.collection<UserDocument>("users");
+    this.inventory = this.db.collection<InventoryDocument>("inventory");
+    this.sales = this.db.collection<SalesDocument>("sales");
+  }
+
+  async connect(): Promise<void> {
+    await this.client.connect();
+    console.log("Connected to MongoDB successfully");
+    await this.initializeDefaultUsers();
+  }
+
+  async disconnect(): Promise<void> {
+    await this.client.close();
+    console.log("Disconnected from MongoDB");
+  }
+
+  private async initializeDefaultUsers() {
+    // Check if users already exist
+    const existingUsersCount = await this.users.countDocuments();
+    if (existingUsersCount > 0) {
+      console.log("Users already exist in MongoDB, skipping initialization");
+      return;
+    }
+
+    // Create default users
+    const { hashPassword } = await import("./middleware/auth");
+    
+    const defaultUsers: UserDocument[] = [
+      {
+        _id: new ObjectId(),
+        username: "admin",
+        email: "admin@dealerpro.com",
+        password: await hashPassword("admin123"),
+        userType: "admin",
+        createdAt: new Date()
+      },
+      {
+        _id: new ObjectId(),
+        username: "manager1",
+        email: "manager@dealerpro.com", 
+        password: await hashPassword("manager123"),
+        userType: "manager",
+        createdAt: new Date()
+      },
+      {
+        _id: new ObjectId(),
+        username: "employee1",
+        email: "employee@dealerpro.com",
+        password: await hashPassword("employee123"),
+        userType: "employee",
+        createdAt: new Date()
+      }
+    ];
+
+    await this.users.insertMany(defaultUsers);
+    console.log("Default users created in MongoDB");
+  }
+
+  private documentToInventory(doc: InventoryDocument): Inventory {
+    return {
+      id: doc._id!.toString(),
+      stockNumber: doc.stockNumber,
+      vin: doc.vin,
+      year: doc.year,
+      make: doc.make,
+      model: doc.model,
+      series: doc.series,
+      color: doc.color,
+      certified: doc.certified,
+      body: doc.body,
+      price: doc.price,
+      bookValue: doc.bookValue,
+      cost: doc.cost,
+      markup: doc.markup,
+      odometer: doc.odometer,
+      age: doc.age,
+      createdAt: doc.createdAt
+    };
+  }
+
+  private documentToSales(doc: SalesDocument): Sales {
+    return {
+      id: doc._id!.toString(),
+      dealNumber: doc.dealNumber,
+      customerNumber: doc.customerNumber,
+      firstName: doc.firstName,
+      lastName: doc.lastName,
+      zip: doc.zip,
+      exteriorColor: doc.exteriorColor,
+      newUsed: doc.newUsed,
+      stockNumber: doc.stockNumber,
+      deliveryDate: doc.deliveryDate,
+      deliveryMileage: doc.deliveryMileage,
+      trade1Vin: doc.trade1Vin,
+      trade1Year: doc.trade1Year,
+      trade1Make: doc.trade1Make,
+      trade1Model: doc.trade1Model,
+      trade1Odometer: doc.trade1Odometer,
+      trade1ACV: doc.trade1ACV,
+      trade2Vin: doc.trade2Vin,
+      trade2Year: doc.trade2Year,
+      trade2Make: doc.trade2Make,
+      trade2Model: doc.trade2Model,
+      trade2Odometer: doc.trade2Odometer,
+      trade2ACV: doc.trade2ACV,
+      closingManagerNumber: doc.closingManagerNumber,
+      closingManagerName: doc.closingManagerName,
+      financeManagerNumber: doc.financeManagerNumber,
+      financeManagerName: doc.financeManagerName,
+      salesmanNumber: doc.salesmanNumber,
+      salesmanName: doc.salesmanName,
+      msrp: doc.msrp,
+      listPrice: doc.listPrice,
+      salesPrice: doc.salesPrice,
+      createdAt: doc.createdAt
+    };
+  }
+
+  private documentToUser(doc: UserDocument): User {
+    return {
+      id: doc._id!.toString(),
+      username: doc.username,
+      email: doc.email,
+      userType: doc.userType,
+      createdAt: doc.createdAt
+    };
+  }
+
+  // User methods
+  async createUser(userData: RegisterUser): Promise<User> {
+    const { hashPassword } = await import("./middleware/auth");
+    
+    const document: UserDocument = {
+      _id: new ObjectId(),
+      username: userData.username,
+      email: userData.email,
+      password: await hashPassword(userData.password),
+      userType: userData.userType,
+      createdAt: new Date()
+    };
+
+    const result = await this.users.insertOne(document);
+    document._id = result.insertedId;
+    return this.documentToUser(document);
+  }
+
+  async getUserByEmail(email: string): Promise<UserDocument | undefined> {
+    const user = await this.users.findOne({ email });
+    return user || undefined;
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    const doc = await this.users.findOne({ _id: new ObjectId(id) });
+    return doc ? this.documentToUser(doc) : undefined;
+  }
+
+  // Inventory methods
+  async getInventory(): Promise<Inventory[]> {
+    const docs = await this.inventory.find({}).toArray();
+    return docs.map(doc => this.documentToInventory(doc));
+  }
+
+  async getInventoryItem(id: string): Promise<Inventory | undefined> {
+    const doc = await this.inventory.findOne({ _id: new ObjectId(id) });
+    return doc ? this.documentToInventory(doc) : undefined;
+  }
+
+  async getInventoryByVin(vin: string): Promise<Inventory | undefined> {
+    const doc = await this.inventory.findOne({ vin });
+    return doc ? this.documentToInventory(doc) : undefined;
+  }
+
+  async getInventoryByStockNumber(stockNumber: string): Promise<Inventory | undefined> {
+    const doc = await this.inventory.findOne({ stockNumber });
+    return doc ? this.documentToInventory(doc) : undefined;
+  }
+
+  async createInventoryItem(insertItem: InsertInventory): Promise<Inventory> {
+    const document: InventoryDocument = {
+      _id: new ObjectId(),
+      ...insertItem,
+      createdAt: new Date(),
+      markup: insertItem.price && insertItem.cost 
+        ? String(Number(insertItem.price) - Number(insertItem.cost))
+        : insertItem.markup || null
+    };
+
+    const result = await this.inventory.insertOne(document);
+    document._id = result.insertedId;
+    return this.documentToInventory(document);
+  }
+
+  async updateInventoryItem(id: string, updateData: Partial<InsertInventory>): Promise<Inventory> {
+    const updateDoc = {
+      ...updateData,
+      markup: updateData.price && updateData.cost 
+        ? String(Number(updateData.price) - Number(updateData.cost))
+        : updateData.markup
+    };
+
+    const result = await this.inventory.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateDoc },
+      { returnDocument: "after" }
+    );
+    
+    if (!result) {
+      throw new Error("Inventory item not found");
+    }
+    
+    return this.documentToInventory(result);
+  }
+
+  async deleteInventoryItem(id: string): Promise<boolean> {
+    const result = await this.inventory.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount > 0;
+  }
+
+  // Sales methods
+  async getSales(): Promise<Sales[]> {
+    const docs = await this.sales.find({}).toArray();
+    return docs.map(doc => this.documentToSales(doc));
+  }
+
+  async getSalesItem(id: string): Promise<Sales | undefined> {
+    const doc = await this.sales.findOne({ _id: new ObjectId(id) });
+    return doc ? this.documentToSales(doc) : undefined;
+  }
+
+  async createSalesItem(insertItem: InsertSales): Promise<Sales> {
+    const document: SalesDocument = {
+      _id: new ObjectId(),
+      ...insertItem,
+      createdAt: new Date(),
+    };
+
+    const result = await this.sales.insertOne(document);
+    document._id = result.insertedId;
+    return this.documentToSales(document);
+  }
+
+  async updateSalesItem(id: string, updateData: Partial<InsertSales>): Promise<Sales> {
+    const result = await this.sales.findOneAndUpdate(
+      { _id: new ObjectId(id) },
+      { $set: updateData },
+      { returnDocument: "after" }
+    );
+    
+    if (!result) {
+      throw new Error("Sales item not found");
+    }
+    
+    return this.documentToSales(result);
+  }
+
+  async deleteSalesItem(id: string): Promise<boolean> {
+    const result = await this.sales.deleteOne({ _id: new ObjectId(id) });
+    return result.deletedCount > 0;
+  }
+
+  // Search methods
+  async searchInventory(query: string): Promise<Inventory[]> {
+    const lowerQuery = query.toLowerCase();
+    const regex = new RegExp(lowerQuery, 'i');
+    
+    const docs = await this.inventory.find({
+      $or: [
+        { vin: regex },
+        { make: regex },
+        { model: regex },
+        { stockNumber: regex },
+        { color: regex }
+      ]
+    }).toArray();
+    
+    return docs.map(doc => this.documentToInventory(doc));
+  }
+
+  async searchSales(query: string): Promise<Sales[]> {
+    const lowerQuery = query.toLowerCase();
+    const regex = new RegExp(lowerQuery, 'i');
+    
+    const docs = await this.sales.find({
+      $or: [
+        { dealNumber: regex },
+        { firstName: regex },
+        { lastName: regex },
+        { customerNumber: regex }
+      ]
+    }).toArray();
+    
+    return docs.map(doc => this.documentToSales(doc));
+  }
+}
+
+// Initialize storage based on environment
+async function initializeStorage(): Promise<IStorage> {
+  const mongoUrl = process.env.MONGODB_URL || process.env.MONGO_URL;
+  
+  if (mongoUrl) {
+    console.log("Initializing MongoDB storage...");
+    try {
+      const mongoStorage = new MongoDBStorage(mongoUrl);
+      await mongoStorage.connect();
+      return mongoStorage;
+    } catch (error) {
+      console.error("Failed to connect to MongoDB:", error);
+      console.log("Falling back to in-memory storage");
+    }
+  }
+  
+  console.log("Using in-memory storage");
+  return new MongoDBCompatibleStorage();
+}
+
+// Export a promise that resolves to the initialized storage
+export const storagePromise = initializeStorage();
+export let storage: IStorage;
+
+// Initialize storage immediately
+initializeStorage().then(s => {
+  storage = s;
+}).catch(error => {
+  console.error("Failed to initialize storage:", error);
+  storage = new MongoDBCompatibleStorage();
+});

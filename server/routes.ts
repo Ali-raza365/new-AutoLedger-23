@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, storagePromise } from "./storage";
 import { 
   insertInventorySchema, 
   insertSalesSchema,
@@ -19,6 +19,8 @@ import {
 } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Wait for storage to be initialized
+  await storagePromise;
 
   // Authentication routes
   app.post("/api/auth/register", async (req, res) => {
