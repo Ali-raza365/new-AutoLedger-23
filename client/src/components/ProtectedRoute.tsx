@@ -29,6 +29,8 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
     );
   }
 
+
+
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return null;
