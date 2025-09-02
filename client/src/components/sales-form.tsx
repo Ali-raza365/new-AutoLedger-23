@@ -61,27 +61,17 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
 
   const searchVinMutation = useMutation({
     mutationFn: (vin: string) => apiRequest(`/api/inventory/vin/${vin}`),
-    onSuccess: async (response) => {
-      if (response.ok) {
-        const vehicle: Inventory = await response.json();
-        setFoundVehicle(vehicle);
-        // Pre-fill form with vehicle data
-        form.setValue("stockNumber", vehicle.stockNumber);
-        form.setValue("exteriorColor", vehicle.color);
-        form.setValue("listPrice", String(vehicle.price));
-        form.setValue("msrp", String(Number(vehicle.price) + 1000)); // Estimate MSRP
-        toast({
-          title: "Vehicle Found",
-          description: `${vehicle.year} ${vehicle.make} ${vehicle.model} - Stock #${vehicle.stockNumber}`,
-        });
-      } else {
-        setFoundVehicle(null);
-        toast({
-          title: "Vehicle Not Found",
-          description: "No vehicle found with this VIN in inventory",
-          variant: "destructive",
-        });
-      }
+    onSuccess: (vehicle: Inventory) => {
+      setFoundVehicle(vehicle);
+      // Pre-fill form with vehicle data
+      form.setValue("stockNumber", vehicle.stockNumber);
+      form.setValue("exteriorColor", vehicle.color);
+      form.setValue("listPrice", String(vehicle.price));
+      form.setValue("msrp", String(Number(vehicle.price) + 1000)); // Estimate MSRP
+      toast({
+        title: "Vehicle Found",
+        description: `${vehicle.year} ${vehicle.make} ${vehicle.model} - Stock #${vehicle.stockNumber}`,
+      });
     },
     onError: () => {
       setFoundVehicle(null);
