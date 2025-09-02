@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Car, BarChart3, Receipt, ChartBar, LogOut, User } from "lucide-react";
+import { Car, BarChart3, Receipt, ChartBar, Settings, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ const navigation = [
   { name: "Car Inventory", href: "/inventory", icon: Car },
   { name: "Sales Log", href: "/sales", icon: Receipt },
   { name: "Reports", href: "/reports", icon: ChartBar },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export default function Sidebar() {

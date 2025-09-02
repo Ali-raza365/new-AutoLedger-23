@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertSalesSchema, type InsertSales, type Inventory } from "@shared/schema";
+import { insertSalesSchema, type InsertSales, type Inventory, type Settings } from "@shared/schema";
 
 interface SalesFormProps {
   onSuccess: () => void;
@@ -21,6 +21,12 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
   const queryClient = useQueryClient();
   const [vinSearch, setVinSearch] = useState("");
   const [foundVehicle, setFoundVehicle] = useState<Inventory | null>(null);
+
+  // Fetch settings data
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    queryFn: () => apiRequest("/api/settings"),
+  });
 
   const form = useForm<InsertSales>({
     resolver: zodResolver(insertSalesSchema),
@@ -321,9 +327,20 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Exterior Color</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Silver Metallic" {...field} data-testid="input-exterior-color" />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-exterior-color">
+                            <SelectValue placeholder="Select Color" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {settings?.colors?.map((color) => (
+                            <SelectItem key={color.code} value={color.name}>
+                              {color.name} ({color.code})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

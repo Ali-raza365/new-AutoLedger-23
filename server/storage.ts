@@ -8,7 +8,10 @@ import {
   type SalesDocument,
   type User,
   type RegisterUser,
-  type UserDocument
+  type UserDocument,
+  type Settings,
+  type InsertSettings,
+  type SettingsDocument
 } from "@shared/schema";
 
 export interface IStorage {
@@ -33,6 +36,10 @@ export interface IStorage {
   updateSalesItem(id: string, item: Partial<InsertSales>): Promise<Sales>;
   deleteSalesItem(id: string): Promise<boolean>;
 
+  // Settings methods
+  getSettings(): Promise<Settings | undefined>;
+  updateSettings(settings: InsertSettings): Promise<Settings>;
+
   // Search methods
   searchInventory(query: string): Promise<Inventory[]>;
   searchSales(query: string): Promise<Sales[]>;
@@ -42,13 +49,16 @@ class MongoDBCompatibleStorage implements IStorage {
   private inventory: Map<string, InventoryDocument>;
   private sales: Map<string, SalesDocument>;
   private users: Map<string, UserDocument>;
+  private settings: SettingsDocument | null;
 
   constructor() {
     this.inventory = new Map();
     this.sales = new Map();
     this.users = new Map();
+    this.settings = null;
     this.initializeDummyData();
     this.initializeDefaultUsers();
+    this.initializeDefaultSettings();
   }
 
   private initializeDummyData() {
@@ -531,6 +541,96 @@ class MongoDBCompatibleStorage implements IStorage {
     
     return filtered.map(doc => this.documentToSales(doc));
   }
+
+  // Settings methods
+  async getSettings(): Promise<Settings | undefined> {
+    if (!this.settings) {
+      return undefined;
+    }
+    return this.documentToSettings(this.settings);
+  }
+
+  async updateSettings(settings: InsertSettings): Promise<Settings> {
+    const updatedSettings: SettingsDocument = {
+      _id: this.settings?._id || new ObjectId(),
+      ...settings,
+      createdAt: this.settings?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    
+    this.settings = updatedSettings;
+    return this.documentToSettings(updatedSettings);
+  }
+
+  private initializeDefaultSettings() {
+    const defaultSettings: SettingsDocument = {
+      _id: new ObjectId(),
+      make: ["FORD"],
+      sources: ["KBB", "STRAIGHT PURCHASE", "TRADE IN", "LEASE BUY OUT"],
+      years: [2021, 2022, 2023, 2024],
+      status: ["BCA", "IN STOCK", "RECALL", "SOLD", "HOLD", "IN-TRANSIT", "RECIEVED", "DEALER TRADE", "UPFIT", "DEMO", "JEEP DOC", "BROKER DEAL"],
+      model: [
+        {
+          name: "BRONCO",
+          Series: ["Badlands", "Base", "Black Diamond", "WILDTRACK", "OUTER BANKS", "ADVANCED", "BIG BEND"]
+        },
+        {
+          name: "BRONCO SPORT", 
+          Series: ["Badlands", "Base", "Big Bend", "Big Bend (TM)", "Outer Banks", "Outer Banks (TM)"]
+        },
+        {
+          name: "F-150",
+          Series: ["Lariat", "Platinum", "RAPTOR", "Tremor", "XL", "XLT", "KING RANCH", "BASE", "LIMITED"]
+        },
+        {
+          name: "MUSTANG",
+          Series: ["EcoBoast Fastback", "EcoBoast Premium Fastback", "GT Fastback", "P8C-301A", "P8C-400A", "GT-COUPE", "GT-PREMIUM"]
+        }
+      ],
+      colors: [
+        {code: "PUM", name: "AGATE BLACK"},
+        {code: "PDR", name: "AVALANCHE"},
+        {code: "PYZ", name: "OXFORD WHITE"},
+        {code: "PAZ", name: "STAR WHITE"},
+        {code: "PA3", name: "SPACE WHITE"},
+        {code: "PG1", name: "SHADOW BLACK"},
+        {code: "PHY", name: "DARK MATTER PC"},
+        {code: "PM7", name: "CARBONIZED GRAY"},
+        {code: "PUJ", name: "STERLING GRAY"},
+        {code: "PJS", name: "ICONIC SILVER"},
+        {code: "PTN", name: "SILVER GREY"},
+        {code: "PNE", name: "FIGHTER JET GRAY"},
+        {code: "PAE", name: "GRABBER BLUE"},
+        {code: "PK1", name: "VAPOR BLUE"},
+        {code: "PAB", name: "BLUE TINTED CLEARCOAT"},
+        {code: "PE7", name: "VELOCITY BLUE"},
+        {code: "PLK", name: "DARK BLUE"},
+        {code: "PL8", name: "CINNABAR RED"},
+        {code: "PD4", name: "RAPID RED MET"},
+        {code: "PPQ", name: "RACE RED"},
+        {code: "PCN", name: "CODE ORANGE"},
+        {code: "PSB", name: "CYBER ORANGE"}
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.settings = defaultSettings;
+  }
+
+  private documentToSettings(doc: SettingsDocument): Settings {
+    return {
+      id: doc._id!.toString(),
+      make: doc.make,
+      sources: doc.sources,
+      years: doc.years,
+      status: doc.status,
+      model: doc.model,
+      colors: doc.colors,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    };
+  }
 }
 
 class MongoDBStorage implements IStorage {
@@ -539,6 +639,7 @@ class MongoDBStorage implements IStorage {
   private users: Collection<UserDocument>;
   private inventory: Collection<InventoryDocument>;
   private sales: Collection<SalesDocument>;
+  private settings: Collection<SettingsDocument>;
 
   constructor(mongoUrl: string, databaseName: string = "dealerpro") {
     this.client = new MongoClient(mongoUrl);
@@ -546,12 +647,14 @@ class MongoDBStorage implements IStorage {
     this.users = this.db.collection<UserDocument>("users");
     this.inventory = this.db.collection<InventoryDocument>("inventory");
     this.sales = this.db.collection<SalesDocument>("sales");
+    this.settings = this.db.collection<SettingsDocument>("settings");
   }
 
   async connect(): Promise<void> {
     await this.client.connect();
     console.log("Connected to MongoDB successfully");
     await this.initializeDefaultUsers();
+    await this.initializeDefaultSettings();
   }
 
   async disconnect(): Promise<void> {
@@ -835,6 +938,115 @@ class MongoDBStorage implements IStorage {
     }).toArray();
     
     return docs.map(doc => this.documentToSales(doc));
+  }
+
+  // Settings methods
+  async getSettings(): Promise<Settings | undefined> {
+    const doc = await this.settings.findOne({});
+    return doc ? this.documentToSettings(doc) : undefined;
+  }
+
+  async updateSettings(settings: InsertSettings): Promise<Settings> {
+    const existingDoc = await this.settings.findOne({});
+    
+    if (existingDoc) {
+      const updatedDoc = {
+        ...existingDoc,
+        ...settings,
+        updatedAt: new Date(),
+      };
+      
+      await this.settings.replaceOne({ _id: existingDoc._id }, updatedDoc);
+      return this.documentToSettings(updatedDoc);
+    } else {
+      const newDoc: SettingsDocument = {
+        _id: new ObjectId(),
+        ...settings,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      await this.settings.insertOne(newDoc);
+      return this.documentToSettings(newDoc);
+    }
+  }
+
+  private async initializeDefaultSettings() {
+    // Check if settings already exist
+    const existingSettingsCount = await this.settings.countDocuments();
+    if (existingSettingsCount > 0) {
+      console.log("Settings already exist in MongoDB, skipping initialization");
+      return;
+    }
+
+    const defaultSettings: SettingsDocument = {
+      _id: new ObjectId(),
+      make: ["FORD"],
+      sources: ["KBB", "STRAIGHT PURCHASE", "TRADE IN", "LEASE BUY OUT"],
+      years: [2021, 2022, 2023, 2024],
+      status: ["BCA", "IN STOCK", "RECALL", "SOLD", "HOLD", "IN-TRANSIT", "RECIEVED", "DEALER TRADE", "UPFIT", "DEMO", "JEEP DOC", "BROKER DEAL"],
+      model: [
+        {
+          name: "BRONCO",
+          Series: ["Badlands", "Base", "Black Diamond", "WILDTRACK", "OUTER BANKS", "ADVANCED", "BIG BEND"]
+        },
+        {
+          name: "BRONCO SPORT",
+          Series: ["Badlands", "Base", "Big Bend", "Big Bend (TM)", "Outer Banks", "Outer Banks (TM)"]
+        },
+        {
+          name: "F-150",
+          Series: ["Lariat", "Platinum", "RAPTOR", "Tremor", "XL", "XLT", "KING RANCH", "BASE", "LIMITED"]
+        },
+        {
+          name: "MUSTANG",
+          Series: ["EcoBoast Fastback", "EcoBoast Premium Fastback", "GT Fastback", "P8C-301A", "P8C-400A", "GT-COUPE", "GT-PREMIUM"]
+        }
+      ],
+      colors: [
+        {code: "PUM", name: "AGATE BLACK"},
+        {code: "PDR", name: "AVALANCHE"},
+        {code: "PYZ", name: "OXFORD WHITE"},
+        {code: "PAZ", name: "STAR WHITE"},
+        {code: "PA3", name: "SPACE WHITE"},
+        {code: "PG1", name: "SHADOW BLACK"},
+        {code: "PHY", name: "DARK MATTER PC"},
+        {code: "PM7", name: "CARBONIZED GRAY"},
+        {code: "PUJ", name: "STERLING GRAY"},
+        {code: "PJS", name: "ICONIC SILVER"},
+        {code: "PTN", name: "SILVER GREY"},
+        {code: "PNE", name: "FIGHTER JET GRAY"},
+        {code: "PAE", name: "GRABBER BLUE"},
+        {code: "PK1", name: "VAPOR BLUE"},
+        {code: "PAB", name: "BLUE TINTED CLEARCOAT"},
+        {code: "PE7", name: "VELOCITY BLUE"},
+        {code: "PLK", name: "DARK BLUE"},
+        {code: "PL8", name: "CINNABAR RED"},
+        {code: "PD4", name: "RAPID RED MET"},
+        {code: "PPQ", name: "RACE RED"},
+        {code: "PCN", name: "CODE ORANGE"},
+        {code: "PSB", name: "CYBER ORANGE"}
+      ],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await this.settings.insertOne(defaultSettings);
+    console.log("Default settings created in MongoDB");
+  }
+
+  private documentToSettings(doc: SettingsDocument): Settings {
+    return {
+      id: doc._id!.toString(),
+      make: doc.make,
+      sources: doc.sources,
+      years: doc.years,
+      status: doc.status,
+      model: doc.model,
+      colors: doc.colors,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+    };
   }
 }
 

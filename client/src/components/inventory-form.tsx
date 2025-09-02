@@ -1,14 +1,14 @@
 import { useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertInventorySchema, type InsertInventory } from "@shared/schema";
+import { insertInventorySchema, type InsertInventory, type Settings } from "@shared/schema";
 
 interface InventoryFormProps {
   onSuccess: () => void;
@@ -17,6 +17,13 @@ interface InventoryFormProps {
 export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedMake, setSelectedMake] = useState("");
+
+  // Fetch settings data
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    queryFn: () => apiRequest("/api/settings"),
+  });
 
   const form = useForm<InsertInventory>({
     resolver: zodResolver(insertInventorySchema),
@@ -160,9 +167,28 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Make</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Toyota" {...field} data-testid="input-make" />
-                  </FormControl>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      setSelectedMake(value);
+                      form.setValue("model", "");
+                      form.setValue("series", "");
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-make">
+                        <SelectValue placeholder="Select Make" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {settings?.make?.map((make) => (
+                        <SelectItem key={make} value={make}>
+                          {make}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -175,9 +201,26 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Model</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Camry" {...field} data-testid="input-model" />
-                  </FormControl>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("series", "");
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger data-testid="select-model">
+                        <SelectValue placeholder="Select Model" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {settings?.model?.map((model) => (
+                        <SelectItem key={model.name} value={model.name}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -187,15 +230,31 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
             <FormField
               control={form.control}
               name="series"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Series</FormLabel>
-                  <FormControl>
-                    <Input placeholder="LE" {...field} data-testid="input-series" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const selectedModel = form.watch("model");
+                const availableSeries = settings?.model?.find(m => m.name === selectedModel)?.Series || [];
+                
+                return (
+                  <FormItem>
+                    <FormLabel>Series</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-series">
+                          <SelectValue placeholder="Select Series" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableSeries.map((series) => (
+                          <SelectItem key={series} value={series}>
+                            {series}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             
             {/* Color */}
@@ -205,9 +264,20 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Silver Metallic" {...field} data-testid="input-color" />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-color">
+                        <SelectValue placeholder="Select Color" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {settings?.colors?.map((color) => (
+                        <SelectItem key={color.code} value={color.name}>
+                          {color.name} ({color.code})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Inventory from "@/pages/inventory";
 import Sales from "@/pages/sales";
 import Reports from "@/pages/reports";
+import Settings from "@/pages/settings";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Sidebar from "@/components/sidebar";
@@ -33,6 +34,7 @@ function Router() {
                 <Route path="/inventory" component={Inventory} />
                 <Route path="/sales" component={Sales} />
                 <Route path="/reports" component={Reports} />
+                <Route path="/settings" component={Settings} />
                 <Route component={NotFound} />
               </Switch>
             </div>

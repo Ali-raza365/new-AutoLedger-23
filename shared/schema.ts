@@ -69,6 +69,19 @@ export interface SalesDocument {
   createdAt: Date;
 }
 
+// Settings Document interfaces  
+export interface SettingsDocument {
+  _id?: ObjectId;
+  make: string[];
+  sources: string[];
+  years: number[];
+  status: string[];
+  model: ModelSeriesType[];
+  colors: ColorOptionType[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Zod validation schemas for client-side form validation
 export const insertInventorySchema = z.object({
   stockNumber: z.string().min(1, "Stock number is required"),
@@ -120,6 +133,26 @@ export const insertSalesSchema = z.object({
   msrp: z.string().optional().nullable(),
   listPrice: z.string().optional().nullable(),
   salesPrice: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Sales price must be positive"),
+});
+
+// Settings validation schemas
+export const modelSeriesSchema = z.object({
+  name: z.string().min(1, "Model name is required"),
+  Series: z.array(z.string().min(1, "Series name cannot be empty")),
+});
+
+export const colorOptionSchema = z.object({
+  code: z.string().min(1, "Color code is required"),
+  name: z.string().min(1, "Color name is required"),
+});
+
+export const insertSettingsSchema = z.object({
+  make: z.array(z.string().min(1, "Make cannot be empty")),
+  sources: z.array(z.string().min(1, "Source cannot be empty")),
+  years: z.array(z.number().min(1900).max(2100)),
+  status: z.array(z.string().min(1, "Status cannot be empty")),
+  model: z.array(modelSeriesSchema),
+  colors: z.array(colorOptionSchema),
 });
 
 // Client-facing types (without MongoDB ObjectId)
@@ -179,6 +212,19 @@ export interface Sales {
   createdAt: Date;
 }
 
+// Client-facing Settings interface
+export interface Settings {
+  id: string;
+  make: string[];
+  sources: string[];
+  years: number[];
+  status: string[];
+  model: ModelSeriesType[];
+  colors: ColorOptionType[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // User authentication schemas
 export const registerUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(50),
@@ -211,5 +257,8 @@ export interface JWTPayload {
 // Type inference from Zod schemas
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type InsertSales = z.infer<typeof insertSalesSchema>;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type ModelSeriesType = z.infer<typeof modelSeriesSchema>;
+export type ColorOptionType = z.infer<typeof colorOptionSchema>;
 export type RegisterUser = z.infer<typeof registerUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;

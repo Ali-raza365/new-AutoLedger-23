@@ -4,6 +4,7 @@ import { storage, storagePromise } from "./storage";
 import { 
   insertInventorySchema, 
   insertSalesSchema,
+  insertSettingsSchema,
   registerUserSchema,
   loginUserSchema 
 } from "@shared/schema";
@@ -337,6 +338,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  // Settings routes - Admin only can update settings, all roles can view
+  app.get("/api/settings", authenticateToken, requireAnyRole, async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      if (!settings) {
+        // Return empty settings structure if no settings exist
+        res.json({
+          make: [],
+          sources: [],
+          years: [],
+          status: [],
+          model: [],
+          colors: []
+        });
+        return;
+      }
+      res.json(settings);
+    } catch (error) {
+      console.error("Failed to get settings:", error);
+      res.status(500).json({ message: "Failed to retrieve settings" });
+    }
+  });
+
+  app.put("/api/settings", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertSettingsSchema.parse(req.body);
+      const settings = await storage.updateSettings(validatedData);
+      res.json(settings);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Failed to update settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
     }
   });
 
