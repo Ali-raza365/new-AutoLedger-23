@@ -2,25 +2,54 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    const errorText = await res.text();
+    let errorMessage;
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMessage = errorData.message || errorText || res.statusText;
+    } catch {
+      errorMessage = errorText || res.statusText;
+    }
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
 }
 
+interface ApiRequestOptions {
+  method?: string;
+  body?: unknown;
+  headers?: Record<string, string>;
+}
+
 export async function apiRequest(
-  method: string,
   url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+  options: ApiRequestOptions = {}
+): Promise<any> {
+  const { method = "GET", body, headers = {} } = options;
+  
+  // Get token from localStorage
+  const token = localStorage.getItem("auth_token");
+  
+  const requestHeaders: Record<string, string> = {
+    ...headers,
+  };
+  
+  if (body) {
+    requestHeaders["Content-Type"] = "application/json";
+  }
+  
+  if (token) {
+    requestHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: requestHeaders,
+    body: body ? JSON.stringify(body) : undefined,
     credentials: "include",
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return res.json();
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -29,7 +58,15 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const token = localStorage.getItem("auth_token");
+    const headers: Record<string, string> = {};
+    
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const res = await fetch(queryKey.join("/") as string, {
+      headers,
       credentials: "include",
     });
 

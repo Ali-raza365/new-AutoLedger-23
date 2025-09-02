@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Car, BarChart3, Receipt, ChartBar, Bell } from "lucide-react";
+import { Car, BarChart3, Receipt, ChartBar, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -11,6 +13,11 @@ const navigation = [
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
+  
+  const handleLogout = () => {
+    logout();
+  };
   
   return (
     <div className="w-64 bg-white shadow-sm border-r border-gray-200">
@@ -50,16 +57,26 @@ export default function Sidebar() {
       
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-white">
         <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-            <span className="text-sm font-medium text-gray-600">JS</span>
+          <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
+            <User className="text-white" size={16} />
           </div>
-          <div className="ml-2">
-            <p className="text-sm font-medium text-gray-700">John Smith</p>
-            <p className="text-xs text-gray-500">Manager</p>
+          <div className="ml-2 flex-1">
+            <p className="text-sm font-medium text-gray-700" data-testid="text-username">
+              {user?.username || 'User'}
+            </p>
+            <p className="text-xs text-gray-500 capitalize" data-testid="text-role">
+              {user?.userType || 'employee'}
+            </p>
           </div>
-          <button className="ml-auto p-1 text-gray-400 hover:text-gray-500">
-            <Bell size={16} />
-          </button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="ml-auto p-1 text-gray-400 hover:text-gray-500"
+            data-testid="button-logout"
+          >
+            <LogOut size={16} />
+          </Button>
         </div>
       </div>
     </div>
