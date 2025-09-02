@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Download, Search } from "lucide-react";
 import type { Sales } from "@shared/schema";
 import SalesForm from "@/components/sales-form";
@@ -93,6 +93,8 @@ export default function Sales() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                    <DialogTitle className="sr-only">Record New Sale</DialogTitle>
+                    <DialogDescription className="sr-only">Enter sale details and customer information</DialogDescription>
                     <SalesForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>

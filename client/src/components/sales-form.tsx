@@ -95,7 +95,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertSales) =>
-      apiRequest("POST", "/api/sales", data),
+      apiRequest("/api/sales", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });

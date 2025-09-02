@@ -41,7 +41,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
 
   const createMutation = useMutation({
     mutationFn: (data: InsertInventory) =>
-      apiRequest("POST", "/api/inventory", data),
+      apiRequest("/api/inventory", { method: "POST", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });

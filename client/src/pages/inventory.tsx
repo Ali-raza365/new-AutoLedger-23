@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Download, Search } from "lucide-react";
 import type { Inventory } from "@shared/schema";
 import InventoryForm from "@/components/inventory-form";
@@ -100,6 +100,8 @@ export default function Inventory() {
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogTitle className="sr-only">Add New Vehicle to Inventory</DialogTitle>
+                    <DialogDescription className="sr-only">Enter vehicle details to add to inventory</DialogDescription>
                     <InventoryForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
