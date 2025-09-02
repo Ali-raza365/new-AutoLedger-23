@@ -11,12 +11,6 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
   const { isAuthenticated, user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setLocation("/login");
-    }
-  }, [isAuthenticated, isLoading, setLocation]);
-
   // Show loading while checking authentication
   if (isLoading) {
     return (
@@ -29,11 +23,17 @@ export default function ProtectedRoute({ children, requiredRoles }: ProtectedRou
     );
   }
 
-
-
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
-    return null;
+    setLocation("/login");
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   // Check role-based access if required
