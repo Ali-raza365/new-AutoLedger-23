@@ -147,7 +147,7 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
 
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => apiRequest("DELETE", `/api/inventory/${id}`),
+    mutationFn: (id: string) => apiRequest(`/api/inventory/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });

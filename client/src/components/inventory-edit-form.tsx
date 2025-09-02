@@ -43,7 +43,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
 
   const updateMutation = useMutation({
     mutationFn: (data: InsertInventory) => 
-      apiRequest("PUT", `/api/inventory/${vehicle.id}`, data),
+      apiRequest(`/api/inventory/${vehicle.id}`, { method: "PUT", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
