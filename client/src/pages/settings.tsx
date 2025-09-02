@@ -206,9 +206,9 @@ export default function Settings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/30 scroll-smooth">
+    <div className="flex flex-col h-screen bg-gray-50/30">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm flex-shrink-0">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 rounded-2xl">
@@ -222,8 +222,9 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Makes Section */}
           <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
@@ -732,6 +733,7 @@ export default function Settings() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
