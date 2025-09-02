@@ -1,7 +1,18 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 
+// User types for authentication
+export type UserType = "admin" | "manager" | "employee";
+
 // MongoDB Document interfaces
+export interface UserDocument {
+  _id?: ObjectId;
+  username: string;
+  email: string;
+  password: string; // hashed
+  userType: UserType;
+  createdAt: Date;
+}
 export interface InventoryDocument {
   _id?: ObjectId;
   stockNumber: string;
@@ -168,6 +179,37 @@ export interface Sales {
   createdAt: Date;
 }
 
+// User authentication schemas
+export const registerUserSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters").max(50),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  userType: z.enum(["admin", "manager", "employee"]),
+});
+
+export const loginUserSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Client-facing User type (without password)
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  userType: UserType;
+  createdAt: Date;
+}
+
+// JWT payload type
+export interface JWTPayload {
+  userId: string;
+  email: string;
+  userType: UserType;
+}
+
 // Type inference from Zod schemas
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type InsertSales = z.infer<typeof insertSalesSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;

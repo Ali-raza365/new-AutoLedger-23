@@ -5,10 +5,18 @@ import {
   type Sales, 
   type InsertSales,
   type InventoryDocument,
-  type SalesDocument
+  type SalesDocument,
+  type User,
+  type RegisterUser,
+  type UserDocument
 } from "@shared/schema";
 
 export interface IStorage {
+  // User methods
+  createUser(user: RegisterUser): Promise<User>;
+  getUserByEmail(email: string): Promise<UserDocument | undefined>;
+  getUserById(id: string): Promise<User | undefined>;
+  
   // Inventory methods
   getInventory(): Promise<Inventory[]>;
   getInventoryItem(id: string): Promise<Inventory | undefined>;
@@ -33,11 +41,14 @@ export interface IStorage {
 class MongoDBCompatibleStorage implements IStorage {
   private inventory: Map<string, InventoryDocument>;
   private sales: Map<string, SalesDocument>;
+  private users: Map<string, UserDocument>;
 
   constructor() {
     this.inventory = new Map();
     this.sales = new Map();
+    this.users = new Map();
     this.initializeDummyData();
+    this.initializeDefaultUsers();
   }
 
   private initializeDummyData() {
@@ -259,6 +270,42 @@ class MongoDBCompatibleStorage implements IStorage {
     });
   }
 
+  private async initializeDefaultUsers() {
+    // Create default admin user (password will be hashed in production)
+    const { hashPassword } = await import("./middleware/auth");
+    
+    const defaultUsers: UserDocument[] = [
+      {
+        _id: new ObjectId(),
+        username: "admin",
+        email: "admin@dealerpro.com",
+        password: await hashPassword("admin123"),
+        userType: "admin",
+        createdAt: new Date()
+      },
+      {
+        _id: new ObjectId(),
+        username: "manager1",
+        email: "manager@dealerpro.com", 
+        password: await hashPassword("manager123"),
+        userType: "manager",
+        createdAt: new Date()
+      },
+      {
+        _id: new ObjectId(),
+        username: "employee1",
+        email: "employee@dealerpro.com",
+        password: await hashPassword("employee123"),
+        userType: "employee",
+        createdAt: new Date()
+      }
+    ];
+
+    defaultUsers.forEach(user => {
+      this.users.set(user._id!.toString(), user);
+    });
+  }
+
   private documentToInventory(doc: InventoryDocument): Inventory {
     return {
       id: doc._id!.toString(),
@@ -317,6 +364,44 @@ class MongoDBCompatibleStorage implements IStorage {
       salesPrice: doc.salesPrice,
       createdAt: doc.createdAt
     };
+  }
+
+  private documentToUser(doc: UserDocument): User {
+    return {
+      id: doc._id!.toString(),
+      username: doc.username,
+      email: doc.email,
+      userType: doc.userType,
+      createdAt: doc.createdAt
+    };
+  }
+
+  // User methods
+  async createUser(userData: RegisterUser): Promise<User> {
+    const { hashPassword } = await import("./middleware/auth");
+    
+    const id = new ObjectId();
+    const document: UserDocument = {
+      _id: id,
+      username: userData.username,
+      email: userData.email,
+      password: await hashPassword(userData.password),
+      userType: userData.userType,
+      createdAt: new Date()
+    };
+
+    this.users.set(id.toString(), document);
+    return this.documentToUser(document);
+  }
+
+  async getUserByEmail(email: string): Promise<UserDocument | undefined> {
+    const users = Array.from(this.users.values());
+    return users.find(user => user.email === email);
+  }
+
+  async getUserById(id: string): Promise<User | undefined> {
+    const doc = this.users.get(id);
+    return doc ? this.documentToUser(doc) : undefined;
   }
 
   // Inventory methods
