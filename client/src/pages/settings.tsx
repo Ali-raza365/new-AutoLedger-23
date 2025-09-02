@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Plus, X, Save, Edit } from "lucide-react";
+import { Settings as SettingsIcon, Plus, X, Save, Edit, Pencil } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Settings, ModelSeriesType, ColorOptionType } from "@shared/schema";
 
@@ -152,6 +152,43 @@ export default function Settings() {
     });
   };
 
+  // Helper function to get status color based on status value
+  const getStatusColor = (status: string): string => {
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('stock') || statusLower.includes('available')) return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200';
+    if (statusLower.includes('sold')) return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200';
+    if (statusLower.includes('recall') || statusLower.includes('service')) return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200';
+    if (statusLower.includes('received') || statusLower.includes('transit')) return 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200';
+    if (statusLower.includes('reserved') || statusLower.includes('hold')) return 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200';
+    if (statusLower.includes('demo')) return 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200';
+    if (statusLower.includes('wholesale') || statusLower.includes('auction')) return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200';
+    return 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200';
+  };
+
+  // Helper function to get make color
+  const getMakeColor = (make: string): string => {
+    const colors = [
+      'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200',
+      'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200',
+      'bg-green-100 text-green-800 border-green-200 hover:bg-green-200',
+      'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200',
+      'bg-pink-100 text-pink-800 border-pink-200 hover:bg-pink-200',
+      'bg-indigo-100 text-indigo-800 border-indigo-200 hover:bg-indigo-200',
+    ];
+    return colors[make.length % colors.length];
+  };
+
+  // Helper function to get source color
+  const getSourceColor = (source: string): string => {
+    const sourceLower = source.toLowerCase();
+    if (sourceLower.includes('blue book') || sourceLower.includes('kelley')) return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200';
+    if (sourceLower.includes('trade')) return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200';
+    if (sourceLower.includes('auction')) return 'bg-orange-100 text-orange-800 border-orange-200 hover:bg-orange-200';
+    if (sourceLower.includes('lease')) return 'bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-200';
+    if (sourceLower.includes('direct') || sourceLower.includes('purchase')) return 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200';
+    return 'bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-200';
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -169,337 +206,391 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <SettingsIcon className="w-8 h-8" />
-        <div>
-          <h1 className="text-3xl font-bold" data-testid="settings-title">Settings</h1>
-          <p className="text-muted-foreground">Manage system configuration and dropdown values</p>
+    <div className="min-h-screen bg-gray-50/30 scroll-smooth">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b border-gray-200/50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-100 rounded-2xl">
+              <SettingsIcon className="w-8 h-8 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900" data-testid="settings-title">Settings</h1>
+              <p className="text-gray-600 text-lg">Manage system configuration and dropdown values</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid gap-6">
-        {/* Makes Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Makes</CardTitle>
-              <CardDescription>Vehicle manufacturers available in the system</CardDescription>
-            </div>
-            {editMode !== "make" && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => handleEdit("make")}
-                data-testid="edit-makes-button"
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {editMode === "make" ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {(tempValues.make || []).map((make: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={make}
-                        onChange={(e) => handleItemChange("make", index, e.target.value)}
-                        className="w-32"
-                        data-testid={`make-input-${index}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("make", index)}
-                        data-testid={`remove-make-${index}`}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid gap-8 lg:grid-cols-2">
+          {/* Makes Section */}
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Makes</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Vehicle manufacturers available in the system</CardDescription>
+              </div>
+              {editMode !== "make" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit("make")}
+                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                  data-testid="edit-makes-button"
+                >
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {editMode === "make" ? (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap gap-3">
+                    {(tempValues.make || []).map((make: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          value={make}
+                          onChange={(e) => handleItemChange("make", index, e.target.value)}
+                          className="w-36 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`make-input-${index}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("make", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          data-testid={`remove-make-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => handleAddItem("make")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-make-button">
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add Make
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 pt-2 border-t border-gray-100">
+                    <Button onClick={() => handleSave("make")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-makes-button">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {settings.make.map((make, index) => (
+                    <span 
+                      key={index} 
+                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getMakeColor(make)}`}
+                      data-testid={`make-badge-${index}`}
+                    >
+                      {make}
+                    </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("make")} data-testid="add-make-button">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Make
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("make")} disabled={updateMutation.isPending} data-testid="save-makes-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {settings.make.map((make, index) => (
-                  <Badge key={index} variant="secondary" data-testid={`make-badge-${index}`}>
-                    {make}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Sources Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Sources</CardTitle>
-              <CardDescription>Vehicle acquisition sources</CardDescription>
-            </div>
-            {editMode !== "sources" && (
-              <Button variant="outline" size="sm" onClick={() => handleEdit("sources")} data-testid="edit-sources-button">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {editMode === "sources" ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {(tempValues.sources || []).map((source: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={source}
-                        onChange={(e) => handleItemChange("sources", index, e.target.value)}
-                        className="w-40"
-                        data-testid={`source-input-${index}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("sources", index)}
-                        data-testid={`remove-source-${index}`}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
+          {/* Sources Section */}
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Sources</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Vehicle acquisition sources</CardDescription>
+              </div>
+              {editMode !== "sources" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit("sources")}
+                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                  data-testid="edit-sources-button"
+                >
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {editMode === "sources" ? (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap gap-3">
+                    {(tempValues.sources || []).map((source: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          value={source}
+                          onChange={(e) => handleItemChange("sources", index, e.target.value)}
+                          className="w-44 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`source-input-${index}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("sources", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          data-testid={`remove-source-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => handleAddItem("sources")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-source-button">
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add Source
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 pt-2 border-t border-gray-100">
+                    <Button onClick={() => handleSave("sources")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-sources-button">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {settings.sources.map((source, index) => (
+                    <span 
+                      key={index} 
+                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getSourceColor(source)}`}
+                      data-testid={`source-badge-${index}`}
+                    >
+                      {source}
+                    </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("sources")} data-testid="add-source-button">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Source
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("sources")} disabled={updateMutation.isPending} data-testid="save-sources-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {settings.sources.map((source, index) => (
-                  <Badge key={index} variant="secondary" data-testid={`source-badge-${index}`}>
-                    {source}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Years Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Years</CardTitle>
-              <CardDescription>Available vehicle model years</CardDescription>
-            </div>
-            {editMode !== "years" && (
-              <Button variant="outline" size="sm" onClick={() => handleEdit("years")} data-testid="edit-years-button">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {editMode === "years" ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {(tempValues.years || []).map((year: number, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        value={year}
-                        onChange={(e) => handleItemChange("years", index, parseInt(e.target.value))}
-                        className="w-24"
-                        data-testid={`year-input-${index}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("years", index)}
-                        data-testid={`remove-year-${index}`}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
+          {/* Years Section */}
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Years</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Available vehicle model years</CardDescription>
+              </div>
+              {editMode !== "years" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit("years")}
+                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                  data-testid="edit-years-button"
+                >
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {editMode === "years" ? (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap gap-3">
+                    {(tempValues.years || []).map((year: number, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          value={year}
+                          onChange={(e) => handleItemChange("years", index, parseInt(e.target.value))}
+                          className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`year-input-${index}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("years", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          data-testid={`remove-year-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => handleAddItem("years")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-year-button">
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add Year
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 pt-2 border-t border-gray-100">
+                    <Button onClick={() => handleSave("years")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-years-button">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {settings.years.sort((a, b) => b - a).map((year, index) => (
+                    <span 
+                      key={index} 
+                      className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-200 hover:bg-indigo-200 transition-all duration-200 cursor-default shadow-sm"
+                      data-testid={`year-badge-${index}`}
+                    >
+                      {year}
+                    </span>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("years")} data-testid="add-year-button">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Year
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("years")} disabled={updateMutation.isPending} data-testid="save-years-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {settings.years.sort((a, b) => b - a).map((year, index) => (
-                  <Badge key={index} variant="secondary" data-testid={`year-badge-${index}`}>
-                    {year}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Status Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Status</CardTitle>
-              <CardDescription>Vehicle status options</CardDescription>
-            </div>
-            {editMode !== "status" && (
-              <Button variant="outline" size="sm" onClick={() => handleEdit("status")} data-testid="edit-status-button">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {editMode === "status" ? (
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-2">
-                  {(tempValues.status || []).map((status: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <Input
-                        value={status}
-                        onChange={(e) => handleItemChange("status", index, e.target.value)}
-                        className="w-32"
-                        data-testid={`status-input-${index}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("status", index)}
-                        data-testid={`remove-status-${index}`}
+          {/* Status Section */}
+          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Status</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Vehicle status options</CardDescription>
+              </div>
+              {editMode !== "status" && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => handleEdit("status")}
+                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                  data-testid="edit-status-button"
+                >
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {editMode === "status" ? (
+                <div className="space-y-6">
+                  <div className="flex flex-wrap gap-3">
+                    {(tempValues.status || []).map((status: string, index: number) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          value={status}
+                          onChange={(e) => handleItemChange("status", index, e.target.value)}
+                          className="w-36 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`status-input-${index}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("status", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          data-testid={`remove-status-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => handleAddItem("status")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-status-button">
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add Status
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 pt-2 border-t border-gray-100">
+                    <Button onClick={() => handleSave("status")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-status-button">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  <div className="flex gap-3 min-w-max">
+                    {settings.status.map((status, index) => (
+                      <span 
+                        key={index} 
+                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getStatusColor(status)}`}
+                        data-testid={`status-badge-${index}`}
                       >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                        {status}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("status")} data-testid="add-status-button">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Status
-                  </Button>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("status")} disabled={updateMutation.isPending} data-testid="save-status-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel}>
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {settings.status.map((status, index) => (
-                  <Badge key={index} variant="secondary" data-testid={`status-badge-${index}`}>
-                    {status}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Models Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        {/* Models Section - Full Width */}
+        <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
             <div>
-              <CardTitle>Models & Series</CardTitle>
-              <CardDescription>Vehicle models and their available series</CardDescription>
+              <CardTitle className="text-xl font-bold text-gray-900">Models & Series</CardTitle>
+              <CardDescription className="text-gray-600 mt-1">Vehicle models and their available series</CardDescription>
             </div>
             {editMode !== "model" && (
-              <Button variant="outline" size="sm" onClick={() => handleEdit("model")} data-testid="edit-models-button">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleEdit("model")}
+                className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                data-testid="edit-models-button"
+              >
+                <Pencil className="w-4 h-4 text-gray-600" />
               </Button>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-8 pt-0">
             {editMode === "model" ? (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {(tempValues.model || []).map((model: ModelSeriesType, modelIndex: number) => (
-                  <div key={modelIndex} className="border rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor={`model-${modelIndex}`}>Model Name:</Label>
+                  <div key={modelIndex} className="border border-gray-200 rounded-2xl p-6 space-y-6 bg-gray-50/50">
+                    <div className="flex items-center gap-4">
+                      <Label htmlFor={`model-${modelIndex}`} className="font-medium text-gray-700 min-w-[100px]">Model Name:</Label>
                       <Input
                         id={`model-${modelIndex}`}
                         value={model.name}
                         onChange={(e) => handleItemChange("model", modelIndex, e.target.value, "name")}
-                        className="w-48"
+                        className="w-48 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                         data-testid={`model-name-input-${modelIndex}`}
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveItem("model", modelIndex)}
+                        className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
                         data-testid={`remove-model-${modelIndex}`}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4 text-red-500" />
                       </Button>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Series:</Label>
-                      <div className="flex flex-wrap gap-2">
+                    <div className="space-y-4">
+                      <Label className="font-medium text-gray-700">Series:</Label>
+                      <div className="flex flex-wrap gap-3">
                         {model.Series.map((series: string, seriesIndex: number) => (
                           <div key={seriesIndex} className="flex items-center gap-2">
                             <Input
                               value={series}
                               onChange={(e) => handleSeriesChange(modelIndex, seriesIndex, e.target.value)}
-                              className="w-40"
+                              className="w-40 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                               data-testid={`series-input-${modelIndex}-${seriesIndex}`}
                             />
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleRemoveSeries(modelIndex, seriesIndex)}
+                              className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
                               data-testid={`remove-series-${modelIndex}-${seriesIndex}`}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-4 h-4 text-red-500" />
                             </Button>
                           </div>
                         ))}
@@ -508,41 +599,45 @@ export default function Settings() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleAddSeries(modelIndex)}
+                        className="border-blue-200 hover:bg-blue-50 hover:border-blue-300"
                         data-testid={`add-series-${modelIndex}`}
                       >
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Plus className="w-4 h-4 mr-2 text-blue-600" />
                         Add Series
                       </Button>
                     </div>
                   </div>
                 ))}
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("model")} data-testid="add-model-button">
-                    <Plus className="w-4 h-4 mr-2" />
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => handleAddItem("model")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-model-button">
+                    <Plus className="w-4 h-4 mr-2 text-blue-600" />
                     Add Model
                   </Button>
                 </div>
-                <Separator />
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("model")} disabled={updateMutation.isPending} data-testid="save-models-button">
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button onClick={() => handleSave("model")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-models-button">
                     <Save className="w-4 h-4 mr-2" />
                     Save
                   </Button>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
                     Cancel
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {settings.model.map((model, index) => (
-                  <div key={index} className="border rounded-lg p-4" data-testid={`model-card-${index}`}>
-                    <h4 className="font-semibold mb-2">{model.name}</h4>
-                    <div className="flex flex-wrap gap-2">
+                  <div key={index} className="border border-gray-200 rounded-2xl p-6 bg-gray-50/30 hover:bg-gray-50/50 transition-colors" data-testid={`model-card-${index}`}>
+                    <h4 className="font-bold text-lg text-gray-900 mb-4">{model.name}</h4>
+                    <div className="flex flex-wrap gap-3">
                       {model.Series.map((series, seriesIndex) => (
-                        <Badge key={seriesIndex} variant="outline" data-testid={`series-badge-${index}-${seriesIndex}`}>
+                        <span 
+                          key={seriesIndex} 
+                          className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-violet-100 text-violet-800 border border-violet-200 hover:bg-violet-200 transition-all duration-200 cursor-default shadow-sm"
+                          data-testid={`series-badge-${index}-${seriesIndex}`}
+                        >
                           {series}
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -552,75 +647,85 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Colors Section */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        {/* Colors Section - Full Width */}
+        <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
             <div>
-              <CardTitle>Colors</CardTitle>
-              <CardDescription>Available vehicle colors with codes</CardDescription>
+              <CardTitle className="text-xl font-bold text-gray-900">Colors</CardTitle>
+              <CardDescription className="text-gray-600 mt-1">Available vehicle colors with codes</CardDescription>
             </div>
             {editMode !== "colors" && (
-              <Button variant="outline" size="sm" onClick={() => handleEdit("colors")} data-testid="edit-colors-button">
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => handleEdit("colors")}
+                className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                data-testid="edit-colors-button"
+              >
+                <Pencil className="w-4 h-4 text-gray-600" />
               </Button>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-8 pt-0">
             {editMode === "colors" ? (
-              <div className="space-y-4">
-                <div className="space-y-2">
+              <div className="space-y-6">
+                <div className="space-y-4">
                   {(tempValues.colors || []).map((color: ColorOptionType, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
+                    <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl bg-gray-50/30">
                       <Input
                         placeholder="Code"
                         value={color.code}
                         onChange={(e) => handleItemChange("colors", index, e.target.value, "code")}
-                        className="w-24"
+                        className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                         data-testid={`color-code-input-${index}`}
                       />
                       <Input
                         placeholder="Color Name"
                         value={color.name}
                         onChange={(e) => handleItemChange("colors", index, e.target.value, "name")}
-                        className="flex-1"
+                        className="flex-1 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                         data-testid={`color-name-input-${index}`}
                       />
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveItem("colors", index)}
+                        className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
                         data-testid={`remove-color-${index}`}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4 text-red-500" />
                       </Button>
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => handleAddItem("colors")} data-testid="add-color-button">
-                    <Plus className="w-4 h-4 mr-2" />
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => handleAddItem("colors")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-color-button">
+                    <Plus className="w-4 h-4 mr-2 text-blue-600" />
                     Add Color
                   </Button>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => handleSave("colors")} disabled={updateMutation.isPending} data-testid="save-colors-button">
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button onClick={() => handleSave("colors")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-colors-button">
                     <Save className="w-4 h-4 mr-2" />
                     Save
                   </Button>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
                     Cancel
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {settings.colors.map((color, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 border rounded" data-testid={`color-item-${index}`}>
-                    <Badge variant="outline" className="w-16 text-xs">
+                  <div 
+                    key={index} 
+                    className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
+                    data-testid={`color-item-${index}`}
+                  >
+                    <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
                       {color.code}
-                    </Badge>
-                    <span className="text-sm">{color.name}</span>
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 truncate">{color.name}</span>
                   </div>
                 ))}
               </div>
