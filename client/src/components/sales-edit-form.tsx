@@ -60,7 +60,7 @@ export default function SalesEditForm({ sale, onSuccess }: SalesEditFormProps) {
 
   const updateMutation = useMutation({
     mutationFn: (data: InsertSales) => 
-      apiRequest("PUT", `/api/sales/${sale.id}`, data),
+      apiRequest(`/api/sales/${sale.id}`, { method: "PUT", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sales"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
