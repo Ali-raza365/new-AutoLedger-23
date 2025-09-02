@@ -341,7 +341,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           placeholder="29500"
                           {...field}
                           value={field.value || ""}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value)}
                           data-testid="input-msrp"
                         />
                       </FormControl>
@@ -362,7 +362,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           placeholder="28450"
                           {...field}
                           value={field.value || ""}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value)}
                           data-testid="input-list-price"
                         />
                       </FormControl>
@@ -382,7 +382,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           step="0.01"
                           placeholder="27200"
                           {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(e.target.value)}
                           data-testid="input-sales-price"
                         />
                       </FormControl>
@@ -550,7 +550,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                             step="0.01"
                             {...field}
                             value={field.value || ""}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => field.onChange(e.target.value)}
                             data-testid="input-trade1-acv"
                           />
                         </FormControl>
@@ -662,7 +662,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                             step="0.01"
                             {...field}
                             value={field.value || ""}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            onChange={(e) => field.onChange(e.target.value)}
                             data-testid="input-trade2-acv"
                           />
                         </FormControl>
