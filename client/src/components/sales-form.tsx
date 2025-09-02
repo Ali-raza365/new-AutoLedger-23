@@ -340,6 +340,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           step="0.01"
                           placeholder="29500"
                           {...field}
+                          value={field.value || ""}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           data-testid="input-msrp"
                         />
@@ -360,6 +361,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           step="0.01"
                           placeholder="28450"
                           {...field}
+                          value={field.value || ""}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                           data-testid="input-list-price"
                         />
@@ -547,6 +549,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                             type="number"
                             step="0.01"
                             {...field}
+                            value={field.value || ""}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                             data-testid="input-trade1-acv"
                           />
@@ -658,6 +661,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                             type="number"
                             step="0.01"
                             {...field}
+                            value={field.value || ""}
                             onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                             data-testid="input-trade2-acv"
                           />
