@@ -49,7 +49,8 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res.json();
+  const result = await res.json();
+  return result.data;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -75,7 +76,8 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
-    return await res.json();
+    const result = await res.json();
+    return result.data;
   };
 
 export const queryClient = new QueryClient({
