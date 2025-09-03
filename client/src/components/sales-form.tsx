@@ -40,28 +40,28 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
       newUsed: "",
       stockNumber: "",
       deliveryDate: undefined,
-      deliveryMileage: 0,
+      deliveryMileage: undefined,
       trade1Vin: "",
       trade1Year: undefined,
       trade1Make: "",
       trade1Model: "",
-      trade1Odometer: 0,
-      trade1ACV: "0",
+      trade1Odometer: undefined,
+      trade1ACV: "",
       trade2Vin: "",
       trade2Year: undefined,
       trade2Make: "",
       trade2Model: "",
-      trade2Odometer: 0,
-      trade2ACV: "0",
+      trade2Odometer: undefined,
+      trade2ACV: "",
       closingManagerNumber: "",
       closingManagerName: "",
       financeManagerNumber: "",
       financeManagerName: "",
       salesmanNumber: "",
       salesmanName: "",
-      msrp: "0",
-      listPrice: "0",
-      salesPrice: "0",
+      msrp: "",
+      listPrice: "",
+      salesPrice: "",
     },
   });
 
@@ -123,23 +123,31 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
   };
 
   const onSubmit = (data: InsertSales) => {
-    // Clean up empty trade-in VINs
-    if (!data.trade1Vin) {
+    // Clean up empty trade-in VINs and set proper defaults
+    if (!data.trade1Vin || data.trade1Vin.trim() === "") {
       data.trade1Vin = undefined;
       data.trade1Year = undefined;
       data.trade1Make = "";
       data.trade1Model = "";
-      data.trade1Odometer = 0;
-      data.trade1ACV = "0";
+      data.trade1Odometer = undefined;
+      data.trade1ACV = null;
     }
-    if (!data.trade2Vin) {
+    if (!data.trade2Vin || data.trade2Vin.trim() === "") {
       data.trade2Vin = undefined;
       data.trade2Year = undefined;
       data.trade2Make = "";
       data.trade2Model = "";
-      data.trade2Odometer = 0;
-      data.trade2ACV = "0";
+      data.trade2Odometer = undefined;
+      data.trade2ACV = null;
     }
+    
+    // Ensure optional string fields are undefined if empty
+    if (!data.customerNumber?.trim()) data.customerNumber = undefined;
+    if (!data.zip?.trim()) data.zip = undefined;
+    if (!data.exteriorColor?.trim()) data.exteriorColor = undefined;
+    if (!data.msrp?.trim()) data.msrp = null;
+    if (!data.listPrice?.trim()) data.listPrice = null;
+    
     createMutation.mutate(data);
   };
 
@@ -239,8 +247,8 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="new">New</SelectItem>
-                          <SelectItem value="used">Used</SelectItem>
+                          <SelectItem value="New">New</SelectItem>
+                          <SelectItem value="Used">Used</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -315,7 +323,11 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                     <FormItem>
                       <FormLabel>Stock Number</FormLabel>
                       <FormControl>
-                        <Input className="bg-gray-100" readOnly {...field} data-testid="input-stock-number-sales" />
+                        <Input 
+                          placeholder={foundVehicle ? "Auto-filled from VIN search" : "Enter stock number"} 
+                          {...field} 
+                          data-testid="input-stock-number-sales" 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -327,7 +339,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Exterior Color</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger data-testid="select-exterior-color">
                             <SelectValue placeholder="Select Color" />
