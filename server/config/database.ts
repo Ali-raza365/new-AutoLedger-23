@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
+import { env } from "./env";
 
 export const connectDatabase = async (): Promise<void> => {
   try {
     // Use MONGODB_URL specifically for MongoDB connection
-    const mongoUrl = process.env.MONGODB_URL;
+    const mongoUrl = env.MONGODB_URL;
     
     if (!mongoUrl) {
       throw new Error("MONGODB_URL environment variable is not set");

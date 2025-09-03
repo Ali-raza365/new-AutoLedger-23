@@ -1,0 +1,890 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Dealership Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        secondary: '#64748B',
+                        accent: '#10B981'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-inter">
+    <!-- @COMPONENT: Sidebar Navigation -->
+    <div class="flex h-screen bg-gray-50">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-sm border-r border-gray-200">
+            <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                <i class="fas fa-car text-primary text-2xl mr-3"></i>
+                <h1 class="text-xl font-semibold text-gray-900">DealerPro</h1>
+            </div>
+            
+            <nav class="mt-6">
+                <div class="px-3">
+                    <button data-tab="dashboard" class="nav-item active w-full flex items-center px-3 py-2 text-sm font-medium rounded-md text-primary bg-blue-50 mb-1">
+                        <i class="fas fa-chart-dashboard mr-3"></i>
+                        Dashboard
+                    </button>
+                    <button data-tab="inventory" class="nav-item w-full flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 mb-1">
+                        <i class="fas fa-warehouse mr-3"></i>
+                        Car Inventory
+                    </button>
+                    <button data-tab="sales" class="nav-item w-full flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 mb-1">
+                        <i class="fas fa-receipt mr-3"></i>
+                        Sales Log
+                    </button>
+                    <button data-tab="reports" class="nav-item w-full flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 mb-1">
+                        <i class="fas fa-chart-bar mr-3"></i>
+                        Reports
+                    </button>
+                </div>
+            </nav>
+        </div>
+        <!-- @END_COMPONENT: Sidebar Navigation -->
+
+        <!-- @COMPONENT: Main Content Area -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b border-gray-200">
+                <div class="flex items-center justify-between px-6 py-4">
+                    <div>
+                        <h2 id="page-title" class="text-2xl font-semibold text-gray-900">Dashboard</h2>
+                        <p id="page-subtitle" class="text-sm text-gray-600 mt-1">Overview of your dealership operations</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <button class="relative p-2 text-gray-400 hover:text-gray-500">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400"></span>
+                        </button>
+                        <div class="flex items-center">
+                            <img class="h-8 w-8 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="User avatar">
+                            <span class="ml-2 text-sm font-medium text-gray-700">John Smith</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto bg-gray-50">
+                <!-- @COMPONENT: Dashboard Tab -->
+                <div id="dashboard-tab" class="tab-content active">
+                    <div class="p-6">
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-car text-2xl text-primary"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Total Inventory</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.totalInventory">247</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-handshake text-2xl text-accent"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Sales This Month</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.salesThisMonth">42</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-dollar-sign text-2xl text-yellow-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Revenue</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.revenue">$1.2M</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-clock text-2xl text-orange-600"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-600">Avg. Days in Lot</p>
+                                        <p class="text-2xl font-semibold text-gray-900" data-bind="stats.avgDaysInLot">34</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activities -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <h3 class="text-lg font-semibold text-gray-900">Recent Activities</h3>
+                            </div>
+                            <div class="p-6">
+                                <!-- @MAP: recentActivities.map(activity => ( -->
+                                <div class="flex items-center space-x-4 mb-4">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
+                                            <i class="fas fa-plus text-white text-sm"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-900" data-mock="true">New vehicle added to inventory</p>
+                                        <p class="text-sm text-gray-600" data-mock="true">2024 Toyota Camry - Stock #TC2024001</p>
+                                    </div>
+                                    <div class="text-sm text-gray-500" data-mock="true">2 hours ago</div>
+                                </div>
+                                <!-- @END_MAP -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Dashboard Tab -->
+
+                <!-- @COMPONENT: Inventory Tab -->
+                <div id="inventory-tab" class="tab-content">
+                    <div class="p-6">
+                        <!-- Inventory Header Actions -->
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                            <div class="mb-4 lg:mb-0">
+                                <div class="flex items-center space-x-4">
+                                    <button id="add-inventory-btn" class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                        <i class="fas fa-plus mr-2"></i>
+                                        Add Vehicle
+                                    </button>
+                                    <button class="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Export
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="Search by VIN, Make, Model..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary w-80">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                </div>
+                                <select class="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary">
+                                    <option>All Makes</option>
+                                    <option data-mock="true">Toyota</option>
+                                    <option data-mock="true">Honda</option>
+                                    <option data-mock="true">Ford</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Inventory Table -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock #</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">VIN</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <!-- @MAP: inventory.map(vehicle => ( -->
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-mock="true">TC2024001</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">1HGCM82633A123456</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900" data-mock="true">2024 Toyota Camry LE</div>
+                                                    <div class="text-sm text-gray-500" data-mock="true">Sedan</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">Silver Metallic</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-mock="true">$28,450</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">12,450 mi</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">45 days</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <button class="text-primary hover:text-blue-900 mr-3">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="text-red-600 hover:text-red-900">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <!-- @END_MAP -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Inventory Tab -->
+
+                <!-- @COMPONENT: Sales Tab -->
+                <div id="sales-tab" class="tab-content">
+                    <div class="p-6">
+                        <!-- Sales Header Actions -->
+                        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
+                            <div class="mb-4 lg:mb-0">
+                                <div class="flex items-center space-x-4">
+                                    <button id="add-sale-btn" class="inline-flex items-center px-4 py-2 bg-primary text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                        <i class="fas fa-plus mr-2"></i>
+                                        New Sale
+                                    </button>
+                                    <button class="inline-flex items-center px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50">
+                                        <i class="fas fa-download mr-2"></i>
+                                        Export Sales
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="relative">
+                                    <input type="text" placeholder="Search by deal number, customer..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary w-80">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                        <i class="fas fa-search text-gray-400"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sales Table -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deal #</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sale Price</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Date</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salesman</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <!-- @MAP: sales.map(sale => ( -->
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-primary" data-mock="true">D2024001</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900" data-mock="true">John Williams</div>
+                                                    <div class="text-sm text-gray-500" data-mock="true">john@email.com</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900" data-mock="true">2024 Toyota Camry LE</div>
+                                                    <div class="text-sm text-gray-500" data-mock="true">VIN: 1HGCM82633A123456</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-mock="true">$27,200</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">2024-01-15</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600" data-mock="true">Mike Johnson</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <button class="text-primary hover:text-blue-900 mr-3">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="text-primary hover:text-blue-900">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <!-- @END_MAP -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Sales Tab -->
+
+                <!-- @COMPONENT: Reports Tab -->
+                <div id="reports-tab" class="tab-content">
+                    <div class="p-6">
+                        <div class="text-center py-12">
+                            <i class="fas fa-chart-bar text-6xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">Reports Coming Soon</h3>
+                            <p class="text-gray-600">Comprehensive reporting features will be available here.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: Reports Tab -->
+            </main>
+        </div>
+        <!-- @END_COMPONENT: Main Content Area -->
+    </div>
+
+    <!-- @COMPONENT: Inventory Form Modal -->
+    <div id="inventory-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">Add New Vehicle to Inventory</h3>
+                <button id="close-inventory-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="inventory-form" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Stock Number -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Stock #</label>
+                        <input type="text" name="stockNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="TC2024001" required>
+                    </div>
+                    
+                    <!-- VIN -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">VIN</label>
+                        <input type="text" name="vin" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="1HGCM82633A123456" maxlength="17" required>
+                    </div>
+                    
+                    <!-- Year -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                        <input type="number" name="year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" min="1900" max="2030" required>
+                    </div>
+                    
+                    <!-- Make -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Make</label>
+                        <input type="text" name="make" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Toyota" required>
+                    </div>
+                    
+                    <!-- Model -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Model</label>
+                        <input type="text" name="model" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Camry" required>
+                    </div>
+                    
+                    <!-- Series -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Series</label>
+                        <input type="text" name="series" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="LE">
+                    </div>
+                    
+                    <!-- Color -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                        <input type="text" name="color" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Silver Metallic" required>
+                    </div>
+                    
+                    <!-- Certified -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Certified</label>
+                        <select name="certified" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            <option value="no">No</option>
+                            <option value="yes">Yes</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Body -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Body Style</label>
+                        <select name="body" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" required>
+                            <option value="">Select Body Style</option>
+                            <option value="sedan">Sedan</option>
+                            <option value="suv">SUV</option>
+                            <option value="coupe">Coupe</option>
+                            <option value="hatchback">Hatchback</option>
+                            <option value="truck">Truck</option>
+                            <option value="convertible">Convertible</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Price -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label>
+                        <input type="number" name="price" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="28450" required>
+                    </div>
+                    
+                    <!-- Book Value -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Book Value ($)</label>
+                        <input type="number" name="bookValue" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="26500">
+                    </div>
+                    
+                    <!-- Cost -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cost ($)</label>
+                        <input type="number" name="cost" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="24000">
+                    </div>
+                    
+                    <!-- Markup -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Markup ($)</label>
+                        <input type="number" name="markup" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="4450" readonly>
+                    </div>
+                    
+                    <!-- Odometer -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Odometer (miles)</label>
+                        <input type="number" name="odometer" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="12450" required>
+                    </div>
+                    
+                    <!-- Age -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Age (days)</label>
+                        <input type="number" name="age" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="45">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" id="cancel-inventory" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md hover:bg-blue-700">
+                        Add Vehicle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Inventory Form Modal -->
+
+    <!-- @COMPONENT: Sales Form Modal -->
+    <div id="sales-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-6xl shadow-lg rounded-md bg-white mb-10">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-semibold text-gray-900">New Sales Entry</h3>
+                <button id="close-sales-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- VIN Search Section -->
+            <div class="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Search Vehicle by VIN</h4>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <input type="text" id="vin-search" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Enter VIN to auto-populate vehicle details" maxlength="17">
+                    </div>
+                    <button id="search-vin-btn" class="px-4 py-2 bg-primary text-white font-medium rounded-md hover:bg-blue-700">
+                        <i class="fas fa-search mr-2"></i>
+                        Search
+                    </button>
+                </div>
+                <div id="vin-search-result" class="mt-4 hidden">
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-md">
+                        <p class="text-sm text-green-800">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            Vehicle found: <span id="found-vehicle-info" data-mock="true">2024 Toyota Camry LE - Stock #TC2024001</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <form id="sales-form" class="space-y-8">
+                <!-- Deal Information -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Deal Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Deal Number</label>
+                            <input type="text" name="dealNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="D2024001" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Customer Number</label>
+                            <input type="text" name="customerNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="C001234">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">New/Used</label>
+                            <select name="newUsed" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" required>
+                                <option value="">Select</option>
+                                <option value="new">New</option>
+                                <option value="used">Used</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Customer Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                            <input type="text" name="firstName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="John" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                            <input type="text" name="lastName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Williams" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+                            <input type="text" name="zip" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="12345" maxlength="10">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicle Information (Pre-filled from inventory) -->
+                <div class="bg-blue-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Vehicle Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Stock Number</label>
+                            <input type="text" name="stockNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Exterior Color</label>
+                            <input type="text" name="exteriorColor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Silver Metallic">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">MSRP ($)</label>
+                            <input type="number" name="msrp" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="29500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">List Price ($)</label>
+                            <input type="number" name="listPrice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="28450">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Sales Price ($)</label>
+                            <input type="number" name="salesPrice" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01" placeholder="27200" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delivery Information -->
+                <div class="bg-gray-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Delivery Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Date</label>
+                            <input type="date" name="deliveryDate" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Mileage</label>
+                            <input type="number" name="deliveryMileage" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="12450">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trade-In Information -->
+                <div class="bg-yellow-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Trade-In Information</h4>
+                    
+                    <!-- Trade 1 -->
+                    <div class="mb-6">
+                        <h5 class="text-sm font-medium text-gray-700 mb-3">Trade Vehicle 1</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">VIN</label>
+                                <input type="text" name="trade1Vin" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" maxlength="17">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Year</label>
+                                <input type="number" name="trade1Year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" min="1900" max="2030">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Make</label>
+                                <input type="text" name="trade1Make" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Model</label>
+                                <input type="text" name="trade1Model" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Odometer</label>
+                                <input type="number" name="trade1Odometer" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Actual Cash Value ($)</label>
+                                <input type="number" name="trade1ACV" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trade 2 -->
+                    <div>
+                        <h5 class="text-sm font-medium text-gray-700 mb-3">Trade Vehicle 2 (Optional)</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">VIN</label>
+                                <input type="text" name="trade2Vin" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" maxlength="17">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Year</label>
+                                <input type="number" name="trade2Year" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" min="1900" max="2030">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Make</label>
+                                <input type="text" name="trade2Make" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Model</label>
+                                <input type="text" name="trade2Model" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Odometer</label>
+                                <input type="number" name="trade2Odometer" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-2">Actual Cash Value ($)</label>
+                                <input type="number" name="trade2ACV" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manager Information -->
+                <div class="bg-green-50 p-6 rounded-lg">
+                    <h4 class="text-md font-semibold text-gray-900 mb-4">Manager Information</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Closing Manager Number</label>
+                            <input type="text" name="closingManagerNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="CM001">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Closing Manager Name</label>
+                            <input type="text" name="closingManagerName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Robert Johnson">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Finance Manager Number</label>
+                            <input type="text" name="financeManagerNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="FM001">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Finance Manager Name</label>
+                            <input type="text" name="financeManagerName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Sarah Williams">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Salesman Number</label>
+                            <input type="text" name="salesmanNumber" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="SM001">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Salesman Name</label>
+                            <input type="text" name="salesmanName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary focus:border-primary" placeholder="Mike Johnson">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <button type="button" id="cancel-sales" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary border border-transparent rounded-md hover:bg-blue-700">
+                        Record Sale
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: Sales Form Modal -->
+
+    <script>
+        (function() {
+            // @STATE: activeTab:string = 'dashboard'
+            // @STATE: isInventoryModalOpen:boolean = false
+            // @STATE: isSalesModalOpen:boolean = false
+            
+            // Tab navigation
+            const navItems = document.querySelectorAll('.nav-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const pageTitle = document.getElementById('page-title');
+            const pageSubtitle = document.getElementById('page-subtitle');
+
+            const tabConfig = {
+                dashboard: {
+                    title: 'Dashboard',
+                    subtitle: 'Overview of your dealership operations'
+                },
+                inventory: {
+                    title: 'Car Inventory',
+                    subtitle: 'Manage your vehicle inventory'
+                },
+                sales: {
+                    title: 'Sales Log',
+                    subtitle: 'Track vehicle sales and customer information'
+                },
+                reports: {
+                    title: 'Reports',
+                    subtitle: 'View comprehensive business reports'
+                }
+            };
+
+            navItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const tab = item.getAttribute('data-tab');
+                    
+                    // Remove active class from all nav items and tab contents
+                    navItems.forEach(nav => nav.classList.remove('active', 'text-primary', 'bg-blue-50'));
+                    navItems.forEach(nav => nav.classList.add('text-gray-600'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Add active class to clicked nav item and corresponding tab content
+                    item.classList.add('active', 'text-primary', 'bg-blue-50');
+                    item.classList.remove('text-gray-600');
+                    document.getElementById(`${tab}-tab`).classList.add('active');
+                    
+                    // Update page title and subtitle
+                    if (tabConfig[tab]) {
+                        pageTitle.textContent = tabConfig[tab].title;
+                        pageSubtitle.textContent = tabConfig[tab].subtitle;
+                    }
+                });
+            });
+
+            // Modal management
+            const inventoryModal = document.getElementById('inventory-modal');
+            const salesModal = document.getElementById('sales-modal');
+            const addInventoryBtn = document.getElementById('add-inventory-btn');
+            const addSaleBtn = document.getElementById('add-sale-btn');
+            const closeInventoryModal = document.getElementById('close-inventory-modal');
+            const closeSalesModal = document.getElementById('close-sales-modal');
+            const cancelInventory = document.getElementById('cancel-inventory');
+            const cancelSales = document.getElementById('cancel-sales');
+
+            // Show modals
+            addInventoryBtn?.addEventListener('click', () => {
+                inventoryModal.classList.remove('hidden');
+                // TODO: Reset form and prepare for new entry
+            });
+
+            addSaleBtn?.addEventListener('click', () => {
+                salesModal.classList.remove('hidden');
+                // TODO: Reset form and prepare for new sale
+            });
+
+            // Hide modals
+            [closeInventoryModal, cancelInventory].forEach(btn => {
+                btn?.addEventListener('click', () => {
+                    inventoryModal.classList.add('hidden');
+                });
+            });
+
+            [closeSalesModal, cancelSales].forEach(btn => {
+                btn?.addEventListener('click', () => {
+                    salesModal.classList.add('hidden');
+                });
+            });
+
+            // Close modals when clicking outside
+            [inventoryModal, salesModal].forEach(modal => {
+                modal?.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.add('hidden');
+                    }
+                });
+            });
+
+            // VIN Search functionality
+            const vinSearchBtn = document.getElementById('search-vin-btn');
+            const vinSearchInput = document.getElementById('vin-search');
+            const vinSearchResult = document.getElementById('vin-search-result');
+            const foundVehicleInfo = document.getElementById('found-vehicle-info');
+
+            vinSearchBtn?.addEventListener('click', () => {
+                const vin = vinSearchInput.value.trim();
+                if (vin.length === 17) {
+                    // TODO: Implement actual VIN search logic
+                    // Mock successful search
+                    foundVehicleInfo.textContent = '2024 Toyota Camry LE - Stock #TC2024001';
+                    vinSearchResult.classList.remove('hidden');
+                    
+                    // TODO: Pre-fill vehicle information in the sales form
+                    const salesForm = document.getElementById('sales-form');
+                    if (salesForm) {
+                        salesForm.stockNumber.value = 'TC2024001';
+                        salesForm.exteriorColor.value = 'Silver Metallic';
+                        salesForm.msrp.value = '29500';
+                        salesForm.listPrice.value = '28450';
+                    }
+                } else {
+                    alert('Please enter a valid 17-character VIN');
+                }
+            });
+
+            // Auto-calculate markup in inventory form
+            const inventoryForm = document.getElementById('inventory-form');
+            if (inventoryForm) {
+                const priceInput = inventoryForm.price;
+                const costInput = inventoryForm.cost;
+                const markupInput = inventoryForm.markup;
+
+                function calculateMarkup() {
+                    const price = parseFloat(priceInput.value) || 0;
+                    const cost = parseFloat(costInput.value) || 0;
+                    const markup = price - cost;
+                    markupInput.value = markup.toFixed(2);
+                }
+
+                priceInput?.addEventListener('input', calculateMarkup);
+                costInput?.addEventListener('input', calculateMarkup);
+            }
+
+            // Form submissions
+            const inventoryForm2 = document.getElementById('inventory-form');
+            const salesForm = document.getElementById('sales-form');
+
+            inventoryForm2?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // TODO: Implement inventory form submission logic
+                alert('Vehicle added to inventory successfully!');
+                inventoryModal.classList.add('hidden');
+                // TODO: Refresh inventory table
+            });
+
+            salesForm?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                // TODO: Implement sales form submission logic
+                alert('Sale recorded successfully!');
+                salesModal.classList.add('hidden');
+                // TODO: Refresh sales table
+            });
+
+            // VIN validation
+            const vinInputs = document.querySelectorAll('input[name*="vin"], input[name*="Vin"]');
+            vinInputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const value = e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+                    e.target.value = value;
+                    
+                    // TODO: Add VIN format validation
+                    if (value.length === 17) {
+                        e.target.classList.remove('border-red-300');
+                        e.target.classList.add('border-green-300');
+                    } else if (value.length > 0) {
+                        e.target.classList.add('border-red-300');
+                        e.target.classList.remove('border-green-300');
+                    } else {
+                        e.target.classList.remove('border-red-300', 'border-green-300');
+                    }
+                });
+            });
+
+            // Add CSS for tab content visibility
+            const style = document.createElement('style');
+            style.textContent = `
+                .tab-content {
+                    display: none;
+                }
+                .tab-content.active {
+                    display: block;
+                }
+            `;
+            document.head.appendChild(style);
+        })();
+    </script>
+</body>
+</html>
