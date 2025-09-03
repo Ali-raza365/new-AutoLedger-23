@@ -1,70 +1,42 @@
-import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
+import { createServer } from "http";
+import { createApp } from "./app";
+import { setupVite, serveStatic } from "./vite";
+import { env, isDevelopment } from "./config/env";
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    // Create Express app
+    const app = await createApp();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Create HTTP server
+    const server = createServer(app);
 
-    res.status(status).json({ message });
-    throw err;
-  });
+    // Setup Vite in development or serve static files in production
+    if (isDevelopment) {
+      await setupVite(app as any, server);
+    } else {
+      serveStatic(app as any);
+    }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Determine host (use 0.0.0.0 for Replit)
+    const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
+    const host = isReplit ? "0.0.0.0" : "localhost";
+
+    // Start server
+    server.listen(env.PORT, host, () => {
+      console.log(`Server running on ${host}:${env.PORT}`);
+    });
+
+    // Graceful shutdown
+    process.on("SIGTERM", () => {
+      console.log("SIGTERM received, shutting down gracefully");
+      server.close(() => {
+        console.log("Process terminated");
+      });
+    });
+
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
   }
-
-  // Serve the app on the port specified in the environment variable PORT
-  // Default to 5000 if not specified.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  
-  // Use localhost for local development, 0.0.0.0 for Replit
-  const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
-  const host = isReplit ? "0.0.0.0" : "localhost";
-  
-  server.listen(port, host, () => {
-    log(`serving on ${host}:${port}`);
-  });
 })();

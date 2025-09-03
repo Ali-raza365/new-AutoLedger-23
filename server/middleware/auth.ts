@@ -1,6 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { type JWTPayload, type UserType } from "@shared/schema";
+import { env } from "../config/env";
+import { UnauthorizedError, ForbiddenError } from "../utils/errors";
 
 // Extend Express Request type to include user
 declare global {
@@ -10,8 +13,6 @@ declare global {
     }
   }
 }
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 export interface AuthenticatedRequest extends Request {
   user: JWTPayload;
@@ -28,16 +29,20 @@ export const authenticateToken = async (
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      res.status(401).json({ message: "Access token required" });
-      return;
+      throw new UnauthorizedError("Access token required");
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const decoded = jwt.verify(token, env.JWT_SECRET) as JWTPayload;
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ message: "Invalid or expired token" });
-    return;
+    if (error instanceof jwt.JsonWebTokenError) {
+      next(new UnauthorizedError("Invalid token"));
+    } else if (error instanceof jwt.TokenExpiredError) {
+      next(new UnauthorizedError("Token expired"));
+    } else {
+      next(error);
+    }
   }
 };
 
@@ -45,16 +50,12 @@ export const authenticateToken = async (
 export const authorizeRoles = (...allowedRoles: UserType[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      res.status(401).json({ message: "Authentication required" });
+      next(new UnauthorizedError("Authentication required"));
       return;
     }
 
     if (!allowedRoles.includes(req.user.userType)) {
-      res.status(403).json({ 
-        message: "Access denied. Insufficient permissions.",
-        required: allowedRoles,
-        current: req.user.userType
-      });
+      next(new ForbiddenError(`Access denied. Required roles: ${allowedRoles.join(", ")}`));
       return;
     }
 
@@ -69,15 +70,13 @@ export const requireAnyRole = authorizeRoles("admin", "manager", "employee");
 
 // Utility function to generate JWT token
 export const generateToken = (payload: JWTPayload): string => {
-  const expiresIn = process.env.JWT_EXPIRES_IN || "24h";
-  return jwt.sign(payload, JWT_SECRET, { 
-    expiresIn 
-  });
+  return jwt.sign(payload, env.JWT_SECRET, { 
+    expiresIn: env.JWT_EXPIRES_IN
+  } as jwt.SignOptions);
 };
 
 // Utility function to hash password
 export const hashPassword = async (password: string): Promise<string> => {
-  const bcrypt = await import("bcryptjs");
   const saltRounds = 12;
   return bcrypt.hash(password, saltRounds);
 };
@@ -87,6 +86,5 @@ export const comparePassword = async (
   plainPassword: string, 
   hashedPassword: string
 ): Promise<boolean> => {
-  const bcrypt = await import("bcryptjs");
   return bcrypt.compare(plainPassword, hashedPassword);
 };
