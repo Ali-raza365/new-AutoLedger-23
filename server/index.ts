@@ -21,12 +21,13 @@ import { env, isDevelopment } from "./config/env";
     // Determine host (use 0.0.0.0 for Replit)
     const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
 
-// Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
-const host = isDevelopment ? "localhost" : "0.0.0.0";
+const port = Number(env.PORT) || 3000;
+const host = "0.0.0.0";
 
-server.listen(env.PORT, host, () => {
-  console.log(`🚀 Server running on ${host}:${env.PORT}`);
+server.listen(port, host, () => {
+  console.log(`🚀 Server running on ${host}:${port}`);
 });
+
 
 
     // Graceful shutdown
