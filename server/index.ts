@@ -19,6 +19,11 @@ import { env, isDevelopment } from "./config/env";
     // Create Express app
     const app = await createApp();
 
+    app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
+
     // Create HTTP server
     const server = createServer(app);
 
