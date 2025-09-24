@@ -1,12 +1,12 @@
-import { fileURLToPath } from "url";
-import path from "path";
-import dotenv from "dotenv";
+// import { fileURLToPath } from "url";
+// import path from "path";
+// import dotenv from "dotenv";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-console.log(__dirname)
-// Load .env from project root
-dotenv.config({ path: path.resolve(__dirname, "../.env") });
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+// console.log(__dirname)
+// // Load .env from project root
+// dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 import { createServer } from "http";
 import { createApp } from "./app";
