@@ -31,10 +31,10 @@ import { env, isDevelopment } from "./config/env";
 
     // Determine host (use 0.0.0.0 for Replit)
     const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
-    const host = isReplit ? "0.0.0.0" : "localhost";
+   const host = isReplit ? "0.0.0.0" : "localhost";
 
-    // Start server
-    server.listen(env.PORT, host, () => {
+
+  server.listen(env.PORT, host, () => {
       console.log(`Server running on ${host}:${env.PORT}`);
     });
 
