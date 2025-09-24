@@ -8,20 +8,65 @@ import type { Sales } from "@shared/schema";
 import SalesForm from "@/components/sales-form";
 import SalesTable from "@/components/sales-table";
 import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
+import { buildCsv, downloadCsv, generateExportFilename, formatCsvDate } from "@/lib/csvUtils";
+import { toast } from "@/hooks/use-toast";
 
 const SALES_COLUMNS: ColumnDefinition[] = [
   { key: "dealNumber", label: "Deal #", defaultVisible: true },
-  { key: "customer", label: "Customer", defaultVisible: true },
-  { key: "vehicle", label: "Vehicle", defaultVisible: true },
-  { key: "salesPrice", label: "Sale Price", defaultVisible: true },
+  { key: "customerNumber", label: "Customer #", defaultVisible: false },
+  { key: "firstName", label: "First Name", defaultVisible: true },
+  { key: "lastName", label: "Last Name", defaultVisible: true },
+  { key: "zip", label: "ZIP", defaultVisible: false },
+  { key: "exteriorColor", label: "Exterior Color", defaultVisible: false },
+  { key: "newUsed", label: "New/Used", defaultVisible: false },
+  { key: "stockNumber", label: "Stock #", defaultVisible: true },
+  { key: "vehicle", label: "Vehicle", defaultVisible: true }, // optional composite if you want
   { key: "deliveryDate", label: "Delivery Date", defaultVisible: true },
-  { key: "salesman", label: "Salesman", defaultVisible: true },
+  { key: "deliveryMileage", label: "Delivery Mileage", defaultVisible: false },
+
+  // Trade 1 fields
+  { key: "trade1Vin", label: "Trade 1 VIN", defaultVisible: false },
+  { key: "trade1Year", label: "Trade 1 Year", defaultVisible: false },
+  { key: "trade1Make", label: "Trade 1 Make", defaultVisible: false },
+  { key: "trade1Model", label: "Trade 1 Model", defaultVisible: false },
+  { key: "trade1Odometer", label: "Trade 1 Odometer", defaultVisible: false },
+  { key: "trade1ACV", label: "Trade 1 ACV", defaultVisible: false },
+
+  // Trade 2 fields
+  { key: "trade2Vin", label: "Trade 2 VIN", defaultVisible: false },
+  { key: "trade2Year", label: "Trade 2 Year", defaultVisible: false },
+  { key: "trade2Make", label: "Trade 2 Make", defaultVisible: false },
+  { key: "trade2Model", label: "Trade 2 Model", defaultVisible: false },
+  { key: "trade2Odometer", label: "Trade 2 Odometer", defaultVisible: false },
+  { key: "trade2ACV", label: "Trade 2 ACV", defaultVisible: false },
+
+  // Management fields
+  { key: "closingManagerNumber", label: "Closing Manager #", defaultVisible: false },
+  { key: "closingManagerName", label: "Closing Manager Name", defaultVisible: false },
+  { key: "financeManagerNumber", label: "Finance Manager #", defaultVisible: false },
+  { key: "financeManagerName", label: "Finance Manager Name", defaultVisible: false },
+  { key: "salesmanNumber", label: "Salesman #", defaultVisible: false },
+  { key: "salesmanName", label: "Salesman Name", defaultVisible: true },
+
+  // Pricing fields
+  { key: "msrp", label: "MSRP", defaultVisible: false },
+  { key: "listPrice", label: "List Price", defaultVisible: false },
+  { key: "salesPrice", label: "Sale Price", defaultVisible: true },
+
+  // Metadata
+  { key: "createdAt", label: "Created At", defaultVisible: false },
+  { key: "id", label: "ID", defaultVisible: false },
+
+  // Actions
   { key: "actions", label: "Actions", defaultVisible: true },
 ];
+
 
 export default function Sales() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -56,6 +101,8 @@ export default function Sales() {
     queryKey: ["/api/sales"],
   });
 
+  console.log({sales})
+
   const filteredSales = sales.filter((item) => {
     const matchesSearch = !searchQuery || 
       item.dealNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,6 +112,65 @@ export default function Sales() {
     
     return matchesSearch;
   });
+
+    // Export sales data to CSV
+  const exportToCSV = () => {
+    if (filteredSales.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "No sales records available for export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+       const headers = SALES_COLUMNS.map(column => column.label);
+
+
+  
+    const csvData = filteredSales.map((item:any) => {
+      return SALES_COLUMNS.map(column => {
+        const key = column.key;
+        let value = item[key];
+
+        // Handle specific fields
+        if (key === "vehicle") {
+          // You'll need to know what to compose the vehicle string from.
+          // This is a common pattern for "vehicle" fields.
+          value = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`;
+        } else if (key === "deliveryDate" || key === "createdAt") {
+          // Check if the value is a valid Date object before formatting
+          value = item[key] instanceof Date ? formatCsvDate(item[key]) : "";
+        } else if (value === null || value === undefined) {
+          value = "";
+        }
+
+        return value;
+      });
+    });
+
+      const csvContent = buildCsv(headers, csvData);
+      const filename = generateExportFilename("sales");
+      
+      downloadCsv(csvContent, filename);
+      
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredSales.length} sales records to ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "An error occurred while exporting sales data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <>
@@ -98,9 +204,9 @@ export default function Sales() {
                     <SalesForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" data-testid="button-export-sales">
+               <Button variant="outline" onClick={exportToCSV} disabled={isExporting} data-testid="button-export">
                   <Download className="mr-2" size={16} />
-                  Export Sales
+                  Export
                 </Button>
               </div>
             </div>

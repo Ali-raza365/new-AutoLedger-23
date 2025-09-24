@@ -7,7 +7,8 @@ import {
   createInventoryItem,
   updateInventoryItem,
   deleteInventoryItem,
-  searchInventory
+  searchInventory,
+  lookupVinData
 } from "../controllers";
 import { 
   authenticateToken, 
@@ -26,6 +27,7 @@ router.use(authenticateToken);
 // View routes (all roles)
 router.get("/", requireAnyRole, getAllInventory);
 router.get("/search/:query", requireAnyRole, searchInventory);
+router.get("/vin-lookup/:vin", requireAnyRole, lookupVinData);
 router.get("/vin/:vin", requireAnyRole, getInventoryByVin);
 router.get("/stock/:stockNumber", requireAnyRole, getInventoryByStockNumber);
 router.get("/:id", requireAnyRole, getInventoryById);

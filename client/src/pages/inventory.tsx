@@ -9,22 +9,41 @@ import type { Inventory } from "@shared/schema";
 import InventoryForm from "@/components/inventory-form";
 import InventoryTable from "@/components/inventory-table";
 import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
+import { buildCsv, downloadCsv, generateExportFilename, formatCsvDate } from "@/lib/csvUtils";
+import { toast } from "@/hooks/use-toast";
 
 const INVENTORY_COLUMNS: ColumnDefinition[] = [
   { key: "stockNumber", label: "Stock #", defaultVisible: true },
+  { key: "dateLogged", label: "Date Logged", defaultVisible: false },
   { key: "vin", label: "VIN", defaultVisible: true },
-  { key: "vehicle", label: "Vehicle", defaultVisible: true },
+  { key: "newUsed", label: "Vehicle Type", defaultVisible: false },
+  { key: "specificSource", label: "Specific Source", defaultVisible: false },
+  
+  { key: "year", label: "Year", defaultVisible: true },
+  { key: "make", label: "Make", defaultVisible: true },
+  { key: "model", label: "Model", defaultVisible: true },
+  { key: "series", label: "Series", defaultVisible: false },
+  { key: "vehicle", label: "Vehicle", defaultVisible: true }, // composed field
   { key: "color", label: "Color", defaultVisible: true },
-  { key: "price", label: "Price", defaultVisible: true },
+  { key: "certified", label: "Certified", defaultVisible: false },
+  { key: "body", label: "Body", defaultVisible: false },
   { key: "odometer", label: "Odometer", defaultVisible: true },
+  { key: "price", label: "Price", defaultVisible: true },
+  { key: "bookValue", label: "Book Value", defaultVisible: false },
+  { key: "cost", label: "Cost", defaultVisible: false },
+  { key: "markup", label: "Markup", defaultVisible: false },
+  { key: "hqAppraisalSuggested", label: "HQ Appraisal Suggested", defaultVisible: false },
   { key: "age", label: "Age", defaultVisible: true },
   { key: "actions", label: "Actions", defaultVisible: true },
+
 ];
+
 
 export default function Inventory() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMake, setSelectedMake] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -73,6 +92,65 @@ export default function Inventory() {
 
   const uniqueMakes = Array.from(new Set(inventory.map(item => item.make))).sort();
 
+
+  // Export inventory data to CSV
+  const exportToCSV = () => {
+    if (filteredInventory.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "No inventory records available for export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+       const headers = INVENTORY_COLUMNS.map(column => column.label);
+
+
+     // Dynamically map data based on INVENTORY_COLUMNS keys
+    const csvData = filteredInventory.map((item:any) => {
+      return INVENTORY_COLUMNS.map(column => {
+        const key = column.key;
+        let value = item[key];
+
+        // Handle specific composed fields or transformations
+        if (key === "vehicle") {
+          value = `${item.year} ${item.make} ${item.model}`;
+        } else if (key === "certified") {
+          value = item.certified ? "Yes" : "No";
+        } else if (key === "dateLogged") {
+          value = formatCsvDate(item.createdAt);
+        } else if (value === null || value === undefined) {
+          value = "";
+        }
+
+        return value;
+      });
+    });
+
+      const csvContent = buildCsv(headers, csvData);
+      const filename = generateExportFilename("inventory");
+      
+      downloadCsv(csvContent, filename);
+      
+      toast({
+        title: "Export Successful",
+        description: `Exported ${filteredInventory.length} inventory records to ${filename}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "An error occurred while exporting inventory data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <>
       {/* Header */}
@@ -105,7 +183,7 @@ export default function Inventory() {
                     <InventoryForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" data-testid="button-export">
+                <Button variant="outline" onClick={exportToCSV} disabled={isExporting} data-testid="button-export">
                   <Download className="mr-2" size={16} />
                   Export
                 </Button>

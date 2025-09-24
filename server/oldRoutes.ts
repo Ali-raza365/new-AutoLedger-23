@@ -366,10 +366,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/settings", authenticateToken, requireAdmin, async (req, res) => {
     try {
+      console.log(req.body)
       const validatedData = insertSettingsSchema.parse(req.body);
       const settings = await storage.updateSettings(validatedData);
       res.json(settings);
-    } catch (error) {
+    } catch (error:any) {
+      console.log({...error})
+      
       if (error instanceof ZodError) {
         return res.status(400).json({ 
           message: "Validation error", 

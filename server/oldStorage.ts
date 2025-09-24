@@ -13,6 +13,7 @@ import {
   type InsertSettings,
   type SettingsDocument
 } from "@shared/schema";
+import { env } from "./config/env";
 
 export interface IStorage {
   // User methods
@@ -1076,7 +1077,7 @@ class MongoDBStorage implements IStorage {
 
 // Initialize storage based on environment
 async function initializeStorage(): Promise<IStorage> {
-  const mongoUrl = process.env.MONGODB_URL || process.env.MONGO_URL;
+  const mongoUrl = env.MONGODB_URL || process.env.MONGO_URL;
   
   if (mongoUrl) {
     console.log("Initializing MongoDB storage...");

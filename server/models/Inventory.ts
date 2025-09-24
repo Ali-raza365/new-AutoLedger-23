@@ -1,5 +1,24 @@
 import mongoose, { Schema } from "mongoose";
-import { InventoryDocument } from "@shared/schema";
+import { InventoryDocument, AuditTrailEntry } from "@shared/schema";
+
+// Sub-schema for audit trail entries
+const auditTrailSchema = new Schema<AuditTrailEntry>({
+  user: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  action: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  timestamp: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+}, { _id: false });
 
 // Define the Mongoose schema for Inventory
 const inventorySchema = new Schema<InventoryDocument>({
@@ -11,9 +30,11 @@ const inventorySchema = new Schema<InventoryDocument>({
   vin: {
     type: String,
     required: true,
-    length: 17,
+    minlength: 17,
+    maxlength: 17,
     uppercase: true,
     trim: true,
+    match: /^[A-HJ-NPR-Z0-9]{17}$/i, // Valid VIN pattern
   },
   year: {
     type: Number,
@@ -50,19 +71,22 @@ const inventorySchema = new Schema<InventoryDocument>({
     trim: true,
   },
   price: {
-    type: String,
+    type: Number,
     required: true,
+    min: 0,
   },
   bookValue: {
-    type: String,
+    type: Number,
     default: null,
+    min: 0,
   },
   cost: {
-    type: String,
+    type: Number,
     default: null,
+    min: 0,
   },
   markup: {
-    type: String,
+    type: Number,
     default: null,
   },
   odometer: {
@@ -74,6 +98,118 @@ const inventorySchema = new Schema<InventoryDocument>({
     type: Number,
     default: null,
   },
+  
+  // New expanded fields for comprehensive inventory management
+  dateLogged: {
+    type: Date,
+    default: Date.now,
+  },
+  trim: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  
+  // Purchase Information
+  purchaseDate: {
+    type: Date,
+    default: null,
+  },
+  channel: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  specificSource: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  buyerName: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  buyerId: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  storeLocation: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  purchasePrice: {
+    type: String,
+    default: null,
+  },
+  customerName: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  dealNumber: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  
+  // Financial Analysis
+  mmrValue: {
+    type: String,
+    default: null,
+  },
+  kbbWholesale: {
+    type: String,
+    default: null,
+  },
+  marketVariance: {
+    type: String,
+    default: null,
+  },
+  plannedRetail: {
+    type: String,
+    default: null,
+  },
+  estReconCost: {
+    type: String,
+    default: null,
+  },
+  projectedGross: {
+    type: String,
+    default: null,
+  },
+  
+  // Status & Approval
+  hqAppraisalSuggested: {
+    type: Boolean,
+    default: false,
+  },
+  redFlagStatus: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  currentStatus: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  statusDate: {
+    type: Date,
+    default: null,
+  },
+
+   newUsed: {
+    type: String,
+    required: true,
+    enum: ["New", "Used"],
+  },
+  
+  // Audit Trail
+  auditTrail: [auditTrailSchema],
+  
   createdAt: {
     type: Date,
     default: Date.now,
@@ -102,10 +238,8 @@ inventorySchema.index({
 // Calculate and update markup before saving
 inventorySchema.pre("save", function(next) {
   if (this.price && this.cost) {
-    const priceNum = Number(this.price);
-    const costNum = Number(this.cost);
-    if (!isNaN(priceNum) && !isNaN(costNum)) {
-      this.markup = String(priceNum - costNum);
+    if (typeof this.price === 'number' && typeof this.cost === 'number') {
+      this.markup = this.price - this.cost;
     }
   }
   next();

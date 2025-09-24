@@ -1,7 +1,18 @@
+import { fileURLToPath } from "url";
+import path from "path";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+console.log(__dirname)
+// Load .env from project root
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
 import { createServer } from "http";
 import { createApp } from "./app";
 import { setupVite, serveStatic } from "./vite";
 import { env, isDevelopment } from "./config/env";
+
 
 (async () => {
   try {
@@ -20,14 +31,12 @@ import { env, isDevelopment } from "./config/env";
 
     // Determine host (use 0.0.0.0 for Replit)
     const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
+    const host = isReplit ? "0.0.0.0" : "localhost";
 
-// Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
-const host = isDevelopment ? "localhost" : "0.0.0.0";
-
-server.listen(env.PORT, host, () => {
-  console.log(`🚀 Server running on ${host}:${env.PORT}`);
-});
-
+    // Start server
+    server.listen(env.PORT, host, () => {
+      console.log(`Server running on ${host}:${env.PORT}`);
+    });
 
     // Graceful shutdown
     process.on("SIGTERM", () => {

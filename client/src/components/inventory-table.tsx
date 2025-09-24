@@ -20,7 +20,7 @@ interface InventoryTableProps {
 
 function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
   const profitMargin = vehicle.markup && vehicle.cost ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1) : '0.0';
-  
+
   return (
     <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
       <DialogHeader className="pb-6 border-b border-gray-200">
@@ -37,7 +37,7 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
           </div>
         </div>
       </DialogHeader>
-      
+
       <div className="space-y-8 pt-6">
         {/* Vehicle Identification */}
         <div className="bg-white rounded-lg p-6 shadow-sm border">
@@ -100,7 +100,7 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
             </div>
           </div>
         </div>
-        
+
         {/* Pricing Breakdown */}
         <div className="bg-white rounded-lg p-6 shadow-sm border">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Financial Details</h3>
@@ -124,14 +124,14 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
             </div>
           </div>
         </div>
-        
+
         {/* Record Information */}
         <div className="bg-gray-50 rounded-lg p-4 border">
           <div className="flex items-center text-gray-600">
             <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
             <span className="text-sm">Added to inventory: </span>
-            <span className="font-medium ml-1">{vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString('en-US', { 
-              year: 'numeric', month: 'long', day: 'numeric' 
+            <span className="font-medium ml-1">{vehicle.createdAt ? new Date(vehicle.createdAt).toLocaleDateString('en-US', {
+              year: 'numeric', month: 'long', day: 'numeric'
             }) : 'Date not available'}</span>
           </div>
         </div>
@@ -198,28 +198,55 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
           <TableHeader>
             <TableRow className="bg-gray-50">
               {visibleColumns.stockNumber && <TableHead>Stock #</TableHead>}
+              {visibleColumns.dateLogged && <TableHead>Date Logged</TableHead>}
               {visibleColumns.vin && <TableHead>VIN</TableHead>}
               {visibleColumns.vehicle && <TableHead>Vehicle</TableHead>}
+              {visibleColumns.newUsed && <TableHead>Vehicle Type</TableHead>}
+              {visibleColumns.specificSource && <TableHead>Source </TableHead>}
+
+              {visibleColumns.year && <TableHead>Year</TableHead>}
+              {visibleColumns.make && <TableHead>Make</TableHead>}
+              {visibleColumns.model && <TableHead>Model</TableHead>}
+              {visibleColumns.series && <TableHead>Series</TableHead>}
               {visibleColumns.color && <TableHead>Color</TableHead>}
+              {visibleColumns.certified && <TableHead>Certified</TableHead>}
+              {visibleColumns.body && <TableHead>Body</TableHead>}
               {visibleColumns.price && <TableHead>Price</TableHead>}
+              {visibleColumns.bookValue && <TableHead>Book Value</TableHead>}
+              {visibleColumns.cost && <TableHead>Cost</TableHead>}
+              {visibleColumns.markup && <TableHead>Markup</TableHead>}
+              {visibleColumns.hqAppraisalSuggested && <TableHead>HQ Appraisal Suggested</TableHead>}
               {visibleColumns.odometer && <TableHead>Odometer</TableHead>}
               {visibleColumns.age && <TableHead>Age</TableHead>}
               {visibleColumns.actions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {inventory.map((vehicle) => (
-              <TableRow key={vehicle.id} className="hover:bg-gray-50" data-testid={`row-vehicle-${vehicle.id}`}>
+              <TableRow
+                key={vehicle.id}
+                className="hover:bg-gray-50"
+                data-testid={`row-vehicle-${vehicle.id}`}
+              >
                 {visibleColumns.stockNumber && (
                   <TableCell className="font-medium text-primary" data-testid={`text-stock-${vehicle.id}`}>
                     {vehicle.stockNumber}
                   </TableCell>
                 )}
+
+                {visibleColumns.dateLogged && (
+                  <TableCell className="text-gray-600" data-testid={`text-dateLogged-${vehicle.id}`}>
+                    {new Date(vehicle.dateLogged).toLocaleDateString()}
+                  </TableCell>
+                )}
+
                 {visibleColumns.vin && (
                   <TableCell className="text-gray-600 font-mono text-sm" data-testid={`text-vin-${vehicle.id}`}>
                     {vehicle.vin}
                   </TableCell>
                 )}
+
                 {visibleColumns.vehicle && (
                   <TableCell>
                     <div>
@@ -235,26 +262,103 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
                     </div>
                   </TableCell>
                 )}
+                {visibleColumns.newUsed && (
+                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
+                    {vehicle.newUsed}
+                  </TableCell>
+                )}
+                {visibleColumns.specificSource && (
+                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
+                    {vehicle.specificSource}
+                  </TableCell>
+                )}
+
+                {visibleColumns.year && (
+                  <TableCell className="text-gray-600" data-testid={`text-year-${vehicle.id}`}>
+                    {vehicle.year}
+                  </TableCell>
+                )}
+
+                {visibleColumns.make && (
+                  <TableCell className="text-gray-600" data-testid={`text-make-${vehicle.id}`}>
+                    {vehicle.make}
+                  </TableCell>
+                )}
+
+                {visibleColumns.model && (
+                  <TableCell className="text-gray-600" data-testid={`text-model-${vehicle.id}`}>
+                    {vehicle.model}
+                  </TableCell>
+                )}
+
+                {visibleColumns.series && (
+                  <TableCell className="text-gray-600" data-testid={`text-series-${vehicle.id}`}>
+                    {vehicle.series}
+                  </TableCell>
+                )}
+
+
+
                 {visibleColumns.color && (
                   <TableCell className="text-gray-600" data-testid={`text-color-${vehicle.id}`}>
                     {vehicle.color}
                   </TableCell>
                 )}
+
+                {visibleColumns.certified && (
+                  <TableCell className="text-gray-600" data-testid={`text-certified-${vehicle.id}`}>
+                    {vehicle.certified ? "Yes" : "No"}
+                  </TableCell>
+                )}
+
+                {visibleColumns.body && (
+                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
+                    {vehicle.body}
+                  </TableCell>
+                )}
+
                 {visibleColumns.price && (
                   <TableCell className="font-medium text-gray-900" data-testid={`text-price-${vehicle.id}`}>
                     ${Number(vehicle.price).toLocaleString()}
                   </TableCell>
                 )}
+
+                {visibleColumns.bookValue && (
+                  <TableCell className="text-gray-600" data-testid={`text-bookValue-${vehicle.id}`}>
+                    ${Number(vehicle.bookValue).toLocaleString()}
+                  </TableCell>
+                )}
+
+                {visibleColumns.cost && (
+                  <TableCell className="text-gray-600" data-testid={`text-cost-${vehicle.id}`}>
+                    ${Number(vehicle.cost).toLocaleString()}
+                  </TableCell>
+                )}
+
+                {visibleColumns.markup && (
+                  <TableCell className="text-gray-600" data-testid={`text-markup-${vehicle.id}`}>
+                    ${Number(vehicle.markup).toLocaleString()}
+                  </TableCell>
+                )}
+
+                {visibleColumns.hqAppraisalSuggested && (
+                  <TableCell className="text-gray-600" data-testid={`text-hqAppraisalSuggested-${vehicle.id}`}>
+                    {vehicle.hqAppraisalSuggested ? "Yes" : "No"}
+                  </TableCell>
+                )}
+
                 {visibleColumns.odometer && (
                   <TableCell className="text-gray-600" data-testid={`text-odometer-${vehicle.id}`}>
                     {vehicle.odometer.toLocaleString()} mi
                   </TableCell>
                 )}
+
                 {visibleColumns.age && (
                   <TableCell className="text-gray-600" data-testid={`text-age-${vehicle.id}`}>
                     {vehicle.age || 0} days
                   </TableCell>
                 )}
+
                 {visibleColumns.actions && (
                   <TableCell>
                     <div className="flex items-center space-x-2">
@@ -271,6 +375,7 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
                         </DialogTrigger>
                         <VehicleViewDialog vehicle={vehicle} />
                       </Dialog>
+
                       <Dialog open={editingVehicle?.id === vehicle.id} onOpenChange={(open) => !open && setEditingVehicle(null)}>
                         <DialogTrigger asChild>
                           <Button
@@ -285,13 +390,14 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           {editingVehicle && (
-                            <InventoryEditForm 
-                              vehicle={editingVehicle} 
-                              onSuccess={() => setEditingVehicle(null)} 
+                            <InventoryEditForm
+                              vehicle={editingVehicle}
+                              onSuccess={() => setEditingVehicle(null)}
                             />
                           )}
                         </DialogContent>
                       </Dialog>
+
                       <Button
                         variant="ghost"
                         size="sm"
@@ -311,5 +417,6 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
         </Table>
       </div>
     </Card>
+
   );
 }

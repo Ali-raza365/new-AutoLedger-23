@@ -205,112 +205,133 @@ export default function SalesTable({ sales, isLoading, visibleColumns }: SalesTa
   }
 
   return (
-    <Card className="overflow-hidden">
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-gray-50">
-              {visibleColumns.dealNumber && <TableHead>Deal #</TableHead>}
-              {visibleColumns.customer && <TableHead>Customer</TableHead>}
-              {visibleColumns.vehicle && <TableHead>Vehicle</TableHead>}
-              {visibleColumns.salesPrice && <TableHead>Sale Price</TableHead>}
-              {visibleColumns.deliveryDate && <TableHead>Delivery Date</TableHead>}
-              {visibleColumns.salesman && <TableHead>Salesman</TableHead>}
-              {visibleColumns.actions && <TableHead>Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sales.map((sale) => (
-              <TableRow key={sale.id} className="hover:bg-gray-50" data-testid={`row-sale-${sale.id}`}>
-                {visibleColumns.dealNumber && (
-                  <TableCell className="font-medium text-primary" data-testid={`text-deal-${sale.id}`}>
-                    {sale.dealNumber}
-                  </TableCell>
-                )}
-                {visibleColumns.customer && (
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-gray-900" data-testid={`text-customer-${sale.id}`}>
-                        {sale.firstName} {sale.lastName}
-                      </div>
-                      {sale.customerNumber && (
-                        <div className="text-sm text-gray-500">{sale.customerNumber}</div>
+  <Card className="overflow-hidden">
+  <div className="overflow-x-auto">
+    <Table>
+      <TableHeader>
+        <TableRow className="bg-gray-50">
+          {visibleColumns.dealNumber && <TableHead>Deal #</TableHead>}
+          {visibleColumns.customerNumber && <TableHead>Customer #</TableHead>}
+          {visibleColumns.firstName && <TableHead>First Name</TableHead>}
+          {visibleColumns.lastName && <TableHead>Last Name</TableHead>}
+          {visibleColumns.zip && <TableHead>ZIP</TableHead>}
+          {visibleColumns.exteriorColor && <TableHead>Exterior Color</TableHead>}
+          {visibleColumns.newUsed && <TableHead>New/Used</TableHead>}
+          {visibleColumns.stockNumber && <TableHead>Stock #</TableHead>}
+          {visibleColumns.deliveryDate && <TableHead>Delivery Date</TableHead>}
+          {visibleColumns.deliveryMileage && <TableHead>Delivery Mileage</TableHead>}
+          {visibleColumns.trade1Vin && <TableHead>Trade 1 VIN</TableHead>}
+          {visibleColumns.trade1Year && <TableHead>Trade 1 Year</TableHead>}
+          {visibleColumns.trade1Make && <TableHead>Trade 1 Make</TableHead>}
+          {visibleColumns.trade1Model && <TableHead>Trade 1 Model</TableHead>}
+          {visibleColumns.trade1Odometer && <TableHead>Trade 1 Odometer</TableHead>}
+          {visibleColumns.trade1ACV && <TableHead>Trade 1 ACV</TableHead>}
+          {visibleColumns.trade2Vin && <TableHead>Trade 2 VIN</TableHead>}
+          {visibleColumns.trade2Year && <TableHead>Trade 2 Year</TableHead>}
+          {visibleColumns.trade2Make && <TableHead>Trade 2 Make</TableHead>}
+          {visibleColumns.trade2Model && <TableHead>Trade 2 Model</TableHead>}
+          {visibleColumns.trade2Odometer && <TableHead>Trade 2 Odometer</TableHead>}
+          {visibleColumns.trade2ACV && <TableHead>Trade 2 ACV</TableHead>}
+          {visibleColumns.closingManagerNumber && <TableHead>Closing Mgr #</TableHead>}
+          {visibleColumns.closingManagerName && <TableHead>Closing Mgr Name</TableHead>}
+          {visibleColumns.financeManagerNumber && <TableHead>Finance Mgr #</TableHead>}
+          {visibleColumns.financeManagerName && <TableHead>Finance Mgr Name</TableHead>}
+          {visibleColumns.salesmanNumber && <TableHead>Salesman #</TableHead>}
+          {visibleColumns.salesmanName && <TableHead>Salesman Name</TableHead>}
+          {visibleColumns.msrp && <TableHead>MSRP</TableHead>}
+          {visibleColumns.listPrice && <TableHead>List Price</TableHead>}
+          {visibleColumns.salesPrice && <TableHead>Sale Price</TableHead>}
+          {visibleColumns.createdAt && <TableHead>Created At</TableHead>}
+          {visibleColumns.id && <TableHead>ID</TableHead>}
+          {visibleColumns.actions && <TableHead>Actions</TableHead>}
+        </TableRow>
+      </TableHeader>
+
+      <TableBody>
+        {sales.map((sale) => (
+          <TableRow key={sale.id} className="hover:bg-gray-50">
+            {visibleColumns.dealNumber && <TableCell>{sale.dealNumber}</TableCell>}
+            {visibleColumns.customerNumber && <TableCell>{sale.customerNumber}</TableCell>}
+            {visibleColumns.firstName && <TableCell>{sale.firstName}</TableCell>}
+            {visibleColumns.lastName && <TableCell>{sale.lastName}</TableCell>}
+            {visibleColumns.zip && <TableCell>{sale.zip}</TableCell>}
+            {visibleColumns.exteriorColor && <TableCell>{sale.exteriorColor}</TableCell>}
+            {visibleColumns.newUsed && <TableCell>{sale.newUsed}</TableCell>}
+            {visibleColumns.stockNumber && <TableCell>{sale.stockNumber}</TableCell>}
+            {visibleColumns.deliveryDate && (
+              <TableCell>
+                {sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString() : "Not set"}
+              </TableCell>
+            )}
+            {visibleColumns.deliveryMileage && <TableCell>{sale.deliveryMileage}</TableCell>}
+            {visibleColumns.trade1Vin && <TableCell>{sale.trade1Vin}</TableCell>}
+            {visibleColumns.trade1Year && <TableCell>{sale.trade1Year}</TableCell>}
+            {visibleColumns.trade1Make && <TableCell>{sale.trade1Make}</TableCell>}
+            {visibleColumns.trade1Model && <TableCell>{sale.trade1Model}</TableCell>}
+            {visibleColumns.trade1Odometer && <TableCell>{sale.trade1Odometer}</TableCell>}
+            {visibleColumns.trade1ACV && <TableCell>{sale.trade1ACV}</TableCell>}
+            {visibleColumns.trade2Vin && <TableCell>{sale.trade2Vin}</TableCell>}
+            {visibleColumns.trade2Year && <TableCell>{sale.trade2Year}</TableCell>}
+            {visibleColumns.trade2Make && <TableCell>{sale.trade2Make}</TableCell>}
+            {visibleColumns.trade2Model && <TableCell>{sale.trade2Model}</TableCell>}
+            {visibleColumns.trade2Odometer && <TableCell>{sale.trade2Odometer}</TableCell>}
+            {visibleColumns.trade2ACV && <TableCell>{sale.trade2ACV}</TableCell>}
+            {visibleColumns.closingManagerNumber && <TableCell>{sale.closingManagerNumber}</TableCell>}
+            {visibleColumns.closingManagerName && <TableCell>{sale.closingManagerName}</TableCell>}
+            {visibleColumns.financeManagerNumber && <TableCell>{sale.financeManagerNumber}</TableCell>}
+            {visibleColumns.financeManagerName && <TableCell>{sale.financeManagerName}</TableCell>}
+            {visibleColumns.salesmanNumber && <TableCell>{sale.salesmanNumber}</TableCell>}
+            {visibleColumns.salesmanName && <TableCell>{sale.salesmanName}</TableCell>}
+            {visibleColumns.msrp && <TableCell>${Number(sale.msrp).toLocaleString()}</TableCell>}
+            {visibleColumns.listPrice && <TableCell>${Number(sale.listPrice).toLocaleString()}</TableCell>}
+            {visibleColumns.salesPrice && <TableCell>${Number(sale.salesPrice).toLocaleString()}</TableCell>}
+            {visibleColumns.createdAt && (
+              <TableCell>{sale.createdAt ? new Date(sale.createdAt).toLocaleString() : ""}</TableCell>
+            )}
+            {visibleColumns.id && <TableCell>{sale.id}</TableCell>}
+            {visibleColumns.actions && (
+              <TableCell>
+                <div className="flex items-center space-x-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="text-primary hover:text-blue-700">
+                        <Eye size={16} />
+                      </Button>
+                    </DialogTrigger>
+                    <SaleViewDialog sale={sale} />
+                  </Dialog>
+                  <Dialog
+                    open={editingSale?.id === sale.id}
+                    onOpenChange={(open) => !open && setEditingSale(null)}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-blue-700"
+                        onClick={() => setEditingSale(sale)}
+                      >
+                        <Edit size={16} />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                      {editingSale && (
+                        <SalesEditForm
+                          sale={editingSale}
+                          onSuccess={() => setEditingSale(null)}
+                        />
                       )}
-                    </div>
-                  </TableCell>
-                )}
-                {visibleColumns.vehicle && (
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-gray-900" data-testid={`text-stock-${sale.id}`}>
-                        Stock #{sale.stockNumber}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {sale.newUsed} • {sale.exteriorColor}
-                      </div>
-                    </div>
-                  </TableCell>
-                )}
-                {visibleColumns.salesPrice && (
-                  <TableCell className="font-medium text-gray-900" data-testid={`text-price-${sale.id}`}>
-                    ${Number(sale.salesPrice).toLocaleString()}
-                  </TableCell>
-                )}
-                {visibleColumns.deliveryDate && (
-                  <TableCell className="text-gray-600" data-testid={`text-delivery-${sale.id}`}>
-                    {sale.deliveryDate ? new Date(sale.deliveryDate).toLocaleDateString() : 'Not set'}
-                  </TableCell>
-                )}
-                {visibleColumns.salesman && (
-                  <TableCell className="text-gray-600" data-testid={`text-salesman-${sale.id}`}>
-                    {sale.salesmanName || 'Not assigned'}
-                  </TableCell>
-                )}
-                {visibleColumns.actions && (
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-blue-700"
-                            data-testid={`button-view-${sale.id}`}
-                          >
-                            <Eye size={16} />
-                          </Button>
-                        </DialogTrigger>
-                        <SaleViewDialog sale={sale} />
-                      </Dialog>
-                      <Dialog open={editingSale?.id === sale.id} onOpenChange={(open) => !open && setEditingSale(null)}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-primary hover:text-blue-700"
-                            onClick={() => setEditingSale(sale)}
-                            data-testid={`button-edit-sale-${sale.id}`}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-                          {editingSale && (
-                            <SalesEditForm 
-                              sale={editingSale} 
-                              onSuccess={() => setEditingSale(null)} 
-                            />
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  </div>
+</Card>
+
   );
 }

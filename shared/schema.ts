@@ -1,8 +1,51 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
+import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 
 // User types for authentication
 export type UserType = "admin" | "manager" | "employee";
+
+// Audit trail entry for tracking changes
+export interface AuditTrailEntry {
+  user: string;
+  action: string;
+  timestamp: Date;
+}
+
+// Buyer information for settings
+export interface BuyerInfo {
+  id: string;
+  name: string;
+}
+
+
+// Stock number generation rule types
+export type StockNumberRuleType = "none" | "source" | "buyer" | "custom";
+
+// Stock number rule configuration (discriminated union for type safety)
+export type StockNumberRule =
+  | { type: "none" }
+  | { type: "source" }
+  | { type: "buyer" }
+  | { type: "custom"; customValue: string };
+
+export type UserOptionType = {
+  code: string;
+  name: string;
+  roles: ('sales' | 'closer' | 'manager' | 'finance' | 'source')[];
+};
+
+// NHTSA VIN decode result interface
+export interface VINDecodeResult {
+  make?: string;
+  model?: string;
+  year?: number;
+  trim?: string;
+  bodyClass?: string;
+  series?: string;
+  error?: string;
+  newUsed?: string;
+}
 
 // MongoDB Document interfaces
 export interface UserDocument {
@@ -15,22 +58,56 @@ export interface UserDocument {
 }
 export interface InventoryDocument {
   _id?: ObjectId;
+  // Basic Vehicle Information
   stockNumber: string;
+  dateLogged: Date;
   vin: string;
   year: number;
   make: string;
   model: string;
+  trim?: string;
   series?: string;
   color: string;
   certified: boolean;
   body: string;
-  price: string;
-  bookValue?: string | null;
-  cost?: string | null;
-  markup?: string | null;
   odometer: number;
+  newUsed: string;
+
+  // Purchase Information
+  purchaseDate?: Date | null;
+  channel?: string | null; // Trade-In, Auction, Private Party, Service Drive, Wholesale
+  specificSource?: string | null;
+  buyerName?: string | null;
+  buyerId?: string | null;
+  storeLocation?: string | null;
+  purchasePrice?: string | null;
+  customerName?: string | null;
+  dealNumber?: string | null;
+
+  // Financial Analysis
+  price: number; // Current listing price
+  bookValue?: number | null;
+  cost?: number | null;
+  markup?: number | null;
+  mmrValue?: string | null;
+  kbbWholesale?: string | null;
+  marketVariance?: string | null;
+  plannedRetail?: string | null;
+  estReconCost?: string | null;
+  projectedGross?: string | null;
+
+  // Status & Approval
+  hqAppraisalSuggested?: boolean;
+  redFlagStatus?: string | null;
+  currentStatus?: string | null;
+  statusDate?: Date | null;
+
+  // Legacy fields for backward compatibility
   age?: number | null;
   createdAt: Date;
+
+  // Audit Trail
+  auditTrail?: AuditTrailEntry[];
 }
 
 export interface SalesDocument {
@@ -72,33 +149,101 @@ export interface SalesDocument {
 // Settings Document interfaces  
 export interface SettingsDocument {
   _id?: ObjectId;
-  make: string[];
+  // Vehicle Configuration  
   sources: string[];
   years: number[];
   status: string[];
-  model: ModelSeriesType[];
+  users: UserOptionType[];
   colors: ColorOptionType[];
+
+
+  // Business Configuration
+  rooftopCode?: string;
+  hqPriceThreshold?: number;
+  minGrossProfit?: number;
+  maxReconPercentage?: number;
+  buyers?: BuyerInfo[];
+  channels?: string[]; // Trade-In, Auction, Private Party, Service Drive, Wholesale
+
+  // Stock Number Generation Rules
+  stockNumberPrefixRule: StockNumberRule;
+  stockNumberSuffixRule: StockNumberRule;
+  stockNumberSequentialCounter: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
 // Zod validation schemas for client-side form validation
 export const insertInventorySchema = z.object({
+  // Basic Vehicle Information
   stockNumber: z.string().min(1, "Stock number is required"),
+  dateLogged: z.preprocess((val) => {
+    if (typeof val === "string" || val instanceof Date) {
+      return new Date(val);
+    }
+    return val;
+  }, z.date()).optional().default(() => new Date()),
+
   vin: z.string().length(17, "VIN must be exactly 17 characters"),
-  year: z.number().min(1900).max(2030),
-  make: z.string().min(1, "Make is required"),
-  model: z.string().min(1, "Model is required"),
+  year: z.number().min(1900).max(2030).optional(),
+  make: z.string().optional(),
+  model: z.string().optional(),
+  newUsed: z.string().optional(),
+  trim: z.string().optional(),
   series: z.string().optional(),
-  color: z.string().min(1, "Color is required"),
+  color: z.string().optional(),
   certified: z.boolean().default(false),
-  body: z.string().min(1, "Body type is required"),
-  price: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Price must be a positive number"),
-  bookValue: z.string().optional().nullable(),
-  cost: z.string().optional().nullable(),
-  markup: z.string().optional().nullable(),
+  body: z.string().optional(),
   odometer: z.number().min(0, "Odometer cannot be negative"),
+
+  // Purchase Information
+  purchaseDate: z.preprocess((val) => {
+    if (typeof val === "string" || val instanceof Date) {
+      return new Date(val);
+    }
+    return val;
+  }, z.date()).optional().default(() => new Date()),
+  channel: z.string().optional().nullable(),
+  specificSource: z.string().optional().nullable(),
+  buyerName: z.string().optional().nullable(),
+  buyerId: z.string().optional().nullable(),
+  storeLocation: z.string().optional().nullable(),
+  purchasePrice: z.string().optional().nullable(),
+  customerName: z.string().optional().nullable(),
+  dealNumber: z.string().optional().nullable(),
+
+  // Financial Analysis
+  price: z.number().min(0, "Price must be a positive number"),
+  bookValue: z.number().min(0).optional().nullable(),
+  cost: z.number().min(0).optional().nullable(),
+  markup: z.number().optional().nullable(),
+  mmrValue: z.string().optional().nullable(),
+  kbbWholesale: z.string().optional().nullable(),
+  marketVariance: z.string().optional().nullable(),
+  plannedRetail: z.string().optional().nullable(),
+  estReconCost: z.string().optional().nullable(),
+  projectedGross: z.string().optional().nullable(),
+
+  // Status & Approval
+  hqAppraisalSuggested: z.boolean().optional().default(false),
+  redFlagStatus: z.string().optional().nullable(),
+  currentStatus: z.string().optional().nullable(),
+  statusDate: z.preprocess((val) => {
+    if (typeof val === "string" || val instanceof Date) {
+      return new Date(val);
+    }
+    return val;
+  }, z.date()).optional().default(() => new Date()),
+
+  // Legacy fields for backward compatibility
   age: z.number().optional().nullable(),
+});
+
+
+export const colorOptionSchema = z.object({
+  code: z.string().min(1, "Color code is required"),
+  name: z.string().min(1, "Color name is required"),
 });
 
 export const insertSalesSchema = z.object({
@@ -110,7 +255,12 @@ export const insertSalesSchema = z.object({
   exteriorColor: z.string().optional(),
   newUsed: z.string().min(1, "New/Used status is required"),
   stockNumber: z.string().min(1, "Stock number is required"),
-  deliveryDate: z.date().optional(),
+  deliveryDate: z.preprocess((val) => {
+    if (typeof val === "string" || val instanceof Date) {
+      return new Date(val);
+    }
+    return val;
+  }, z.date()).optional().default(() => new Date()),
   deliveryMileage: z.number().optional(),
   trade1Vin: z.string().length(17).optional().or(z.literal("")),
   trade1Year: z.number().optional(),
@@ -136,44 +286,99 @@ export const insertSalesSchema = z.object({
 });
 
 // Settings validation schemas
-export const modelSeriesSchema = z.object({
-  name: z.string().min(1, "Model name is required"),
-  Series: z.array(z.string().min(1, "Series name cannot be empty")),
+export const buyerInfoSchema = z.object({
+  id: z.string().min(1, "Buyer ID is required"),
+  name: z.string().min(1, "Buyer name is required"),
 });
 
-export const colorOptionSchema = z.object({
-  code: z.string().min(1, "Color code is required"),
-  name: z.string().min(1, "Color name is required"),
+export const userOptionSchema = z.object({
+  code: z.string().min(1, "User code is required."),
+  name: z.string().min(1, "User name is required."),
+  roles: z.array(z.enum(['sales', 'closer', 'manager', 'finance', 'source'])).default([]),
 });
 
 export const insertSettingsSchema = z.object({
-  make: z.array(z.string().min(1, "Make cannot be empty")),
+  // Vehicle Configuration
   sources: z.array(z.string().min(1, "Source cannot be empty")),
   years: z.array(z.number().min(1900).max(2100)),
   status: z.array(z.string().min(1, "Status cannot be empty")),
-  model: z.array(modelSeriesSchema),
+  users: z.array(userOptionSchema),
   colors: z.array(colorOptionSchema),
+
+  // Business Configuration
+  rooftopCode: z.string().nullable().optional(),
+  hqPriceThreshold: z.number().min(0).nullable().optional(),
+  minGrossProfit: z.number().min(0).nullable().optional(),
+  maxReconPercentage: z.number().min(0).max(1).nullable().optional(),
+
+  buyers: z.array(buyerInfoSchema).optional(),
+  channels: z.array(z.string().min(1, "Channel cannot be empty")).optional(),
+
+
+  stockNumberPrefixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  stockNumberSuffixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  stockNumberSequentialCounter: z.number().min(1).optional(),
 });
 
 // Client-facing types (without MongoDB ObjectId)
 export interface Inventory {
   id: string;
+  // Basic Vehicle Information
   stockNumber: string;
+  dateLogged: Date;
   vin: string;
   year: number;
   make: string;
   model: string;
+  trim?: string | null;
   series?: string | null;
   color: string;
   certified: boolean;
   body: string;
-  price: string;
-  bookValue?: string | null;
-  cost?: string | null;
-  markup?: string | null;
   odometer: number;
+  newUsed: string;
+
+  // Purchase Information
+  purchaseDate?: Date | null;
+  channel?: string | null;
+  specificSource?: string | null;
+  buyerName?: string | null;
+  buyerId?: string | null;
+  storeLocation?: string | null;
+  purchasePrice?: string | null;
+  customerName?: string | null;
+  dealNumber?: string | null;
+
+  // Financial Analysis
+  price: number;
+  bookValue?: number | null;
+  cost?: number | null;
+  markup?: number | null;
+  mmrValue?: string | null;
+  kbbWholesale?: string | null;
+  marketVariance?: string | null;
+  plannedRetail?: string | null;
+  estReconCost?: string | null;
+  projectedGross?: string | null;
+
+  // Status & Approval
+  hqAppraisalSuggested?: boolean;
+  redFlagStatus?: string | null;
+  currentStatus?: string | null;
+  statusDate?: Date | null;
+
+  // Legacy fields for backward compatibility
   age?: number | null;
   createdAt: Date;
+
+  // Audit Trail
+  auditTrail?: AuditTrailEntry[];
 }
 
 export interface Sales {
@@ -215,12 +420,30 @@ export interface Sales {
 // Client-facing Settings interface
 export interface Settings {
   id: string;
-  make: string[];
+  // Vehicle Configuration
   sources: string[];
   years: number[];
   status: string[];
-  model: ModelSeriesType[];
   colors: ColorOptionType[];
+
+  // Business Configuration
+  rooftopCode?: string;
+  hqPriceThreshold?: number;
+  minGrossProfit?: number;
+  maxReconPercentage?: number;
+  buyers?: BuyerInfo[];
+  channels?: string[];
+
+  // Stock Number Generation Rules (Enhanced) 
+  stockNumberPrefixRule?: StockNumberRule;
+  stockNumberSuffixRule?: StockNumberRule;
+  stockNumberSequentialCounter?: number;
+
+  // Legacy fields for backward compatibility (deprecated)
+  stockNumberPrefix?: string;
+  stockNumberSuffix?: string;
+  stockNumberFormat?: string;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -258,7 +481,6 @@ export interface JWTPayload {
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
 export type InsertSales = z.infer<typeof insertSalesSchema>;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
-export type ModelSeriesType = z.infer<typeof modelSeriesSchema>;
-export type ColorOptionType = z.infer<typeof colorOptionSchema>;
 export type RegisterUser = z.infer<typeof registerUserSchema>;
 export type LoginUser = z.infer<typeof loginUserSchema>;
+export type ColorOptionType = z.infer<typeof colorOptionSchema>;

@@ -41,7 +41,7 @@ export class SeedService {
     }
   }
 
-  static async seedSettings(): Promise<void> {
+ static async seedSettings(): Promise<void> {
     try {
       // Check if settings already exist
       const existingSettings = await Settings.findOne();
@@ -53,6 +53,7 @@ export class SeedService {
       console.log("Seeding default settings...");
 
       const defaultSettings = {
+        // Provided data
         make: ["Ford", "Toyota", "Honda", "Chevrolet", "Nissan", "BMW", "Mercedes-Benz", "Audi", "Hyundai", "Kia", "Volkswagen", "Subaru", "Mazda", "Lexus", "Acura", "Infiniti", "Cadillac", "Lincoln", "Buick", "GMC", "Ram", "Jeep", "Dodge", "Chrysler"],
         sources: ["Kelley Blue Book", "Direct Purchase", "Trade-In", "Lease Buyout", "Auction", "Fleet Sale", "Wholesale", "Consignment"],
         years: [2020, 2021, 2022, 2023, 2024, 2025],
@@ -88,29 +89,49 @@ export class SeedService {
           }
         ],
         colors: [
-          {code: "PUM", name: "Agate Black"},
-          {code: "PDR", name: "Avalanche"},
-          {code: "PYZ", name: "Oxford White"},
-          {code: "PAZ", name: "Star White"},
-          {code: "PA3", name: "Space White"},
-          {code: "PG1", name: "Shadow Black"},
-          {code: "PHY", name: "Dark Matter"},
-          {code: "PM7", name: "Carbonized Gray"},
-          {code: "PUJ", name: "Sterling Gray"},
-          {code: "PJS", name: "Iconic Silver"},
-          {code: "PTN", name: "Silver Gray"},
-          {code: "PNE", name: "Fighter Jet Gray"},
-          {code: "PAE", name: "Grabber Blue"},
-          {code: "PK1", name: "Vapor Blue"},
-          {code: "PAB", name: "Blue Tinted Clearcoat"},
-          {code: "PE7", name: "Velocity Blue"},
-          {code: "PLK", name: "Dark Blue"},
-          {code: "PL8", name: "Cinnabar Red"},
-          {code: "PD4", name: "Rapid Red Metallic"},
-          {code: "PPQ", name: "Race Red"},
-          {code: "PCN", name: "Code Orange"},
-          {code: "PSB", name: "Cyber Orange"}
+          { code: "PUM", name: "Agate Black" },
+          { code: "PDR", name: "Avalanche" },
+          { code: "PYZ", name: "Oxford White" },
+          { code: "PAZ", name: "Star White" },
+          { code: "PA3", name: "Space White" },
+          { code: "PG1", name: "Shadow Black" },
+          { code: "PHY", name: "Dark Matter" },
+          { code: "PM7", name: "Carbonized Gray" },
+          { code: "PUJ", name: "Sterling Gray" },
+          { code: "PJS", name: "Iconic Silver" },
+          { code: "PTN", name: "Silver Gray" },
+          { code: "PNE", name: "Fighter Jet Gray" },
+          { code: "PAE", name: "Grabber Blue" },
+          { code: "PK1", name: "Vapor Blue" },
+          { code: "PAB", name: "Blue Tinted Clearcoat" },
+          { code: "PE7", name: "Velocity Blue" },
+          { code: "PLK", name: "Dark Blue" },
+          { code: "PL8", name: "Cinnabar Red" },
+          { code: "PD4", name: "Rapid Red Metallic" },
+          { code: "PPQ", name: "Race Red" },
+          { code: "PCN", name: "Code Orange" },
+          { code: "PSB", name: "Cyber Orange" }
         ],
+        // Added missing fields from the schema
+        users: [],
+        rooftopCode: "EXAMPLE_ROOFTOP_CODE",
+        hqPriceThreshold: 20000,
+        minGrossProfit: 1500,
+        maxReconPercentage: 0.15,
+        buyers: [
+          { id: "buyer123", name: "Jane Doe" },
+          { id: "buyer456", name: "John Smith" }
+        ],
+        channels: ["Online", "In-Person", "Referral"],
+        stockNumberPrefixRule: {
+          type: "none",
+          customValue: ""
+        },
+        stockNumberSuffixRule: {
+          type: "source",
+          customValue: ""
+        },
+        stockNumberSequentialCounter: 1000,
       };
 
       await Settings.create(defaultSettings);

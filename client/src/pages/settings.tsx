@@ -6,10 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Plus, X, Save, Edit, Pencil } from "lucide-react";
+import { Settings as SettingsIcon, Plus, X, Save, Edit, Pencil, Hash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import type { Settings, ModelSeriesType, ColorOptionType } from "@shared/schema";
+import type { Settings, StockNumberRule, UserOptionType } from "@shared/schema";
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+
+const rolesList = [
+  { id: "sales", name: "Salesperson" },
+  { id: "closer", name: "Closer" },
+  { id: "manager", name: "Manager" },
+  { id: "finance", name: "Finance" },
+  { id: "source", name: "Source" },
+];
 
 export default function Settings() {
   const { toast } = useToast();
@@ -25,7 +35,7 @@ export default function Settings() {
 
   // Update settings mutation
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<Settings>) => 
+    mutationFn: (data: Partial<Settings>) =>
       apiRequest("/api/settings", { method: "PUT", body: data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
@@ -58,18 +68,20 @@ export default function Settings() {
 
   const handleSave = (section: string) => {
     if (!settings) return;
-    
+
     const updatedSettings = {
       ...settings,
       [section]: tempValues[section]
     };
-    
+
+    console.log({ updatedSettings })
+
     updateMutation.mutate(updatedSettings);
   };
 
   const handleAddItem = (section: string) => {
     const currentValues = tempValues[section] || [];
-    
+
     if (section === "model") {
       setTempValues({
         ...tempValues,
@@ -80,7 +92,13 @@ export default function Settings() {
         ...tempValues,
         [section]: [...currentValues, { code: "", name: "" }]
       });
-    } else if (section === "years") {
+    } else if (section === "users") {
+      setTempValues({
+        ...tempValues,
+        [section]: [...currentValues, { code: "", name: "" }]
+      });
+    }
+    else if (section === "years") {
       const currentYear = new Date().getFullYear();
       setTempValues({
         ...tempValues,
@@ -105,51 +123,94 @@ export default function Settings() {
 
   const handleItemChange = (section: string, index: number, value: any, field?: string) => {
     const currentValues = [...tempValues[section]];
-    
+
     if (field) {
       currentValues[index] = { ...currentValues[index], [field]: value };
     } else {
       currentValues[index] = value;
     }
-    
+
     setTempValues({
       ...tempValues,
       [section]: currentValues
     });
   };
 
-  const handleSeriesChange = (modelIndex: number, seriesIndex: number, value: string) => {
-    const currentModels = [...tempValues.model];
-    const currentSeries = [...currentModels[modelIndex].Series];
-    currentSeries[seriesIndex] = value;
-    currentModels[modelIndex] = { ...currentModels[modelIndex], Series: currentSeries };
+
+  // Stock Number Generation helper functions
+  const handleStockNumberEdit = () => {
+    if (!settings) return;
+    setEditMode("stockNumber");
     setTempValues({
-      ...tempValues,
-      model: currentModels
+      stockNumberPrefixRule: settings.stockNumberPrefixRule || { type: "none" },
+      stockNumberSequentialCounter: Number(settings.stockNumberSequentialCounter),
+      stockNumberSuffixRule: settings.stockNumberSuffixRule || { type: "none" },
     });
   };
 
-  const handleAddSeries = (modelIndex: number) => {
-    const currentModels = [...tempValues.model];
-    currentModels[modelIndex] = {
-      ...currentModels[modelIndex],
-      Series: [...currentModels[modelIndex].Series, ""]
+  const handleStockNumberSave = () => {
+    if (!settings) return;
+
+    const updatedSettings = {
+      ...settings,
+      stockNumberPrefixRule: tempValues.stockNumberPrefixRule,
+      stockNumberSuffixRule: tempValues.stockNumberSuffixRule,
+      stockNumberSequentialCounter: Number(tempValues.stockNumberSequentialCounter),
     };
+
+    updateMutation.mutate(updatedSettings);
+  };
+
+  const handleRuleChange = (ruleType: 'prefix' | 'suffix', newRule: StockNumberRule) => {
+    const key = ruleType === 'prefix' ? 'stockNumberPrefixRule' : 'stockNumberSuffixRule';
     setTempValues({
       ...tempValues,
-      model: currentModels
+      [key]: newRule
     });
   };
 
-  const handleRemoveSeries = (modelIndex: number, seriesIndex: number) => {
-    const currentModels = [...tempValues.model];
-    const currentSeries = [...currentModels[modelIndex].Series];
-    currentSeries.splice(seriesIndex, 1);
-    currentModels[modelIndex] = { ...currentModels[modelIndex], Series: currentSeries };
-    setTempValues({
-      ...tempValues,
-      model: currentModels
-    });
+  console.log(tempValues)
+
+  const generateStockNumberPreview = (): string => {
+    const prefixRule = editMode === "stockNumber" ? tempValues.stockNumberPrefixRule : settings?.stockNumberPrefixRule;
+    const suffixRule = editMode === "stockNumber" ? tempValues.stockNumberSuffixRule : settings?.stockNumberSuffixRule;
+    const sequentialNumber = editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter;
+
+    // Sequential number (example)
+    // const sequentialNumber = settings?.stockNumberSequentialCounter || 101441;
+
+    // Generate prefix
+    let prefix = "";
+    if (prefixRule?.type === "source" && settings?.sources?.[0]) {
+      prefix = settings.sources[0].substring(0, 2).toUpperCase();
+    } else if (prefixRule?.type === "buyer") {
+      prefix = 'BUY';  //settings.buyers[0].id.substring(0, 2).toUpperCase() ||
+    } else if (prefixRule?.type === "custom" && "customValue" in prefixRule) {
+      prefix = prefixRule.customValue;
+    }
+
+    // Generate suffix
+    let suffix = "";
+    if (suffixRule?.type === "source" && settings?.sources?.[0]) {
+      suffix = settings.sources[0].substring(0, 2).toUpperCase();
+    } else if (suffixRule?.type === "buyer") {
+      suffix = 'BUY';  //settings.buyers[0].id.substring(0, 2).toUpperCase() ||
+    } else if (suffixRule?.type === "custom" && "customValue" in suffixRule) {
+      suffix = suffixRule.customValue;
+    }
+
+    return `${prefix}${sequentialNumber}${suffix}`;
+  };
+
+  const handleCounterChange = (e: any) => {
+    const value = e.target.value;
+    // Only allow numbers
+    if (/^\d*$/.test(value)) {
+      setTempValues(prev => ({
+        ...prev,
+        stockNumberSequentialCounter: value,
+      }));
+    }
   };
 
   // Helper function to get status color based on status value
@@ -225,58 +286,162 @@ export default function Settings() {
       {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid gap-8 lg:grid-cols-2">
-          {/* Makes Section */}
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+
+          {/* Stock Number Generation Section - Full Width */}
+          <Card className="mt-8 mb-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Makes</CardTitle>
-                <CardDescription className="text-gray-600 mt-1">Vehicle manufacturers available in the system</CardDescription>
+                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
+                  <Hash className="w-6 h-6 text-blue-600" />
+                  Stock Number Generation
+                </CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Configure how stock numbers are built when a Source is selected in Inventory</CardDescription>
               </div>
-              {editMode !== "make" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleEdit("make")}
+              {editMode !== "stockNumber" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleStockNumberEdit}
                   className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                  data-testid="edit-makes-button"
+                  data-testid="edit-stock-number-button"
                 >
                   <Pencil className="w-4 h-4 text-gray-600" />
                 </Button>
               )}
             </CardHeader>
             <CardContent className="p-8 pt-0">
-              {editMode === "make" ? (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap gap-3">
-                    {(tempValues.make || []).map((make: string, index: number) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={make}
-                          onChange={(e) => handleItemChange("make", index, e.target.value)}
-                          className="w-36 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                          data-testid={`make-input-${index}`}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveItem("make", index)}
-                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                          data-testid={`remove-make-${index}`}
+              {editMode === "stockNumber" ? (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Prefix Rule Section */}
+                    <div className="space-y-4">
+                      <Label className="text-base font-semibold text-gray-900">Prefix Rule</Label>
+                      <div className="space-y-4">
+                        <Select
+                          value={tempValues.stockNumberPrefixRule?.type || "none"}
+                          onValueChange={(value: string) => {
+                            if (value === "custom") {
+                              handleRuleChange('prefix', { type: "custom", customValue: "" });
+                            } else {
+                              handleRuleChange('prefix', { type: value as any });
+                            }
+                          }}
+                          data-testid="select-prefix-rule"
                         >
-                          <X className="w-4 h-4 text-red-500" />
-                        </Button>
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select prefix rule" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="source">Source </SelectItem>
+                            <SelectItem value="buyer">Buyer </SelectItem>
+                            <SelectItem value="custom">Custom (fixed value)</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {tempValues.stockNumberPrefixRule?.type === "custom" && (
+                          <Input
+                            placeholder="Enter custom prefix (e.g., AU)"
+                            value={tempValues.stockNumberPrefixRule.customValue || ""}
+                            onChange={(e) => {
+                              handleRuleChange('prefix', {
+                                type: "custom",
+                                customValue: e.target.value
+                              });
+                            }}
+                            className="w-full"
+                            data-testid="input-prefix-custom"
+                          />
+                        )}
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Suffix Rule Section */}
+                    <div className="space-y-4">
+                      <Label className="text-base font-semibold text-gray-900">Suffix Rule</Label>
+                      <div className="space-y-4">
+                        <Select
+                          value={tempValues.stockNumberSuffixRule?.type || "none"}
+                          onValueChange={(value: string) => {
+                            if (value === "custom") {
+                              handleRuleChange('suffix', { type: "custom", customValue: "" });
+                            } else {
+                              handleRuleChange('suffix', { type: value as any });
+                            }
+                          }}
+                          data-testid="select-suffix-rule"
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select suffix rule" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            <SelectItem value="source">Source </SelectItem>
+                            <SelectItem value="buyer">Buyer </SelectItem>
+                            <SelectItem value="custom">Custom (fixed value)</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {tempValues.stockNumberSuffixRule?.type === "custom" && (
+                          <Input
+                            placeholder="Enter custom suffix (e.g., K)"
+                            value={tempValues.stockNumberSuffixRule.customValue || ""}
+                            onChange={(e) => {
+                              handleRuleChange('suffix', {
+                                type: "custom",
+                                customValue: e.target.value
+                              });
+                            }}
+                            className="w-full"
+                            data-testid="input-suffix-custom"
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => handleAddItem("make")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-make-button">
-                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                      Add Make
-                    </Button>
+
+                  <div className="space-y-4">
+                    <Label className="text-base font-semibold text-gray-900">Sequential Number</Label>
+                    <Input
+                      type="number"
+                      placeholder="Enter sequential number"
+                      value={tempValues.stockNumberSequentialCounter}
+                      onChange={handleCounterChange}
+                      className="w-full"
+                      data-testid="input-sequential-counter"
+                    />
+                    <p className="text-sm text-gray-600 mt-2">The number will auto-increment from this value.</p>
                   </div>
-                  <div className="flex gap-3 pt-2 border-t border-gray-100">
-                    <Button onClick={() => handleSave("make")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-makes-button">
+
+                  {/* Preview Section */}
+                  <div className="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
+                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Preview</Label>
+                    <div className="text-2xl font-mono font-bold text-blue-800 bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                      {generateStockNumberPreview()}
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">Auto-updates as you change settings</p>
+                  </div>
+
+                  {/* Sequential Number Info */}
+                  <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <Hash className="w-5 h-5 text-gray-600" />
+                      <Label className="text-base font-semibold text-gray-900">Sequential Number</Label>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">Automatically increments each time a stock is created.</p>
+                    <p className="text-sm text-gray-500">
+                      Current counter: <span className="font-mono font-semibold">{ editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter || 101441}</span>
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      onClick={handleStockNumberSave}
+                      disabled={updateMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      data-testid="save-stock-number-button"
+                    >
                       <Save className="w-4 h-4 mr-2" />
                       Save
                     </Button>
@@ -286,370 +451,385 @@ export default function Settings() {
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  {settings.make.map((make, index) => (
-                    <span 
-                      key={index} 
-                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getMakeColor(make)}`}
-                      data-testid={`make-badge-${index}`}
-                    >
-                      {make}
-                    </span>
-                  ))}
+                <div className="space-y-6">
+                  {/* Current Configuration Display */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">Prefix Rule</Label>
+                      <div className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
+                        <span className="capitalize font-medium text-gray-900">
+                          {settings?.stockNumberPrefixRule?.type || "None"}
+                        </span>
+                        {settings?.stockNumberPrefixRule?.type === "custom" && (
+                          <span className="ml-2 text-sm text-gray-600">
+                            ({settings.stockNumberPrefixRule.customValue})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">Suffix Rule</Label>
+                      <div className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
+                        <span className="capitalize font-medium text-gray-900">
+                          {settings?.stockNumberSuffixRule?.type || "None"}
+                        </span>
+                        {settings?.stockNumberSuffixRule?.type === "custom" && (
+                          <span className="ml-2 text-sm text-gray-600">
+                            ({settings.stockNumberSuffixRule.customValue})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">Current Preview</Label>
+                      <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200">
+                        <span className="font-mono font-bold text-blue-800 text-lg">
+                          {generateStockNumberPreview()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sequential Counter Info */}
+                  <div className="bg-gray-50/30 rounded-xl p-6 border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Hash className="w-5 h-5 text-gray-600" />
+                        <div>
+                          <p className="font-medium text-gray-900">Sequential Number</p>
+                          <p className="text-sm text-gray-600">Automatically increments each time a stock is created</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-500">Current counter</p>
+                        <p className="text-xl font-mono font-bold text-gray-900">
+                          { editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter  || 101441}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Sources Section */}
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          {/* Users Section - Full Width */}
+          <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
               <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Sources</CardTitle>
-                <CardDescription className="text-gray-600 mt-1">Vehicle acquisition sources</CardDescription>
+                <CardTitle className="text-xl font-bold text-gray-900">Users</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Manage user roles and codes</CardDescription>
               </div>
-              {editMode !== "sources" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleEdit("sources")}
+              {editMode !== "users" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit("users")}
                   className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                  data-testid="edit-sources-button"
+                  data-testid="edit-users-button"
                 >
                   <Pencil className="w-4 h-4 text-gray-600" />
                 </Button>
               )}
             </CardHeader>
-            <CardContent className="p-8 pt-0">
-              {editMode === "sources" ? (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap gap-3">
-                    {(tempValues.sources || []).map((source: string, index: number) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={source}
-                          onChange={(e) => handleItemChange("sources", index, e.target.value)}
-                          className="w-44 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                          data-testid={`source-input-${index}`}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveItem("sources", index)}
-                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                          data-testid={`remove-source-${index}`}
-                        >
-                          <X className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => handleAddItem("sources")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-source-button">
-                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                      Add Source
-                    </Button>
-                  </div>
-                  <div className="flex gap-3 pt-2 border-t border-gray-100">
-                    <Button onClick={() => handleSave("sources")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-sources-button">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  {settings.sources.map((source, index) => (
-                    <span 
-                      key={index} 
-                      className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getSourceColor(source)}`}
-                      data-testid={`source-badge-${index}`}
-                    >
-                      {source}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Years Section */}
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
-              <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Years</CardTitle>
-                <CardDescription className="text-gray-600 mt-1">Available vehicle model years</CardDescription>
-              </div>
-              {editMode !== "years" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleEdit("years")}
-                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                  data-testid="edit-years-button"
-                >
-                  <Pencil className="w-4 h-4 text-gray-600" />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-8 pt-0">
-              {editMode === "years" ? (
+            <CardContent className="p-8 pt-8 mb-8">
+              {editMode === "users" ? (
                 <div className="space-y-6">
-                  <div className="flex flex-wrap gap-3">
-                    {(tempValues.years || []).map((year: number, index: number) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          value={year}
-                          onChange={(e) => handleItemChange("years", index, parseInt(e.target.value))}
-                          className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                          data-testid={`year-input-${index}`}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveItem("years", index)}
-                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                          data-testid={`remove-year-${index}`}
-                        >
-                          <X className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => handleAddItem("years")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-year-button">
-                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                      Add Year
-                    </Button>
-                  </div>
-                  <div className="flex gap-3 pt-2 border-t border-gray-100">
-                    <Button onClick={() => handleSave("years")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-years-button">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  {settings.years.sort((a, b) => b - a).map((year, index) => (
-                    <span 
-                      key={index} 
-                      className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800 border border-indigo-200 hover:bg-indigo-200 transition-all duration-200 cursor-default shadow-sm"
-                      data-testid={`year-badge-${index}`}
-                    >
-                      {year}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Status Section */}
-          <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
-              <div>
-                <CardTitle className="text-xl font-bold text-gray-900">Status</CardTitle>
-                <CardDescription className="text-gray-600 mt-1">Vehicle status options</CardDescription>
-              </div>
-              {editMode !== "status" && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => handleEdit("status")}
-                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                  data-testid="edit-status-button"
-                >
-                  <Pencil className="w-4 h-4 text-gray-600" />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-8 pt-0">
-              {editMode === "status" ? (
-                <div className="space-y-6">
-                  <div className="flex flex-wrap gap-3">
-                    {(tempValues.status || []).map((status: string, index: number) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <Input
-                          value={status}
-                          onChange={(e) => handleItemChange("status", index, e.target.value)}
-                          className="w-36 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                          data-testid={`status-input-${index}`}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveItem("status", index)}
-                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                          data-testid={`remove-status-${index}`}
-                        >
-                          <X className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => handleAddItem("status")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-status-button">
-                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                      Add Status
-                    </Button>
-                  </div>
-                  <div className="flex gap-3 pt-2 border-t border-gray-100">
-                    <Button onClick={() => handleSave("status")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-status-button">
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                  <div className="flex gap-3 min-w-max">
-                    {settings.status.map((status, index) => (
-                      <span 
-                        key={index} 
-                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getStatusColor(status)}`}
-                        data-testid={`status-badge-${index}`}
+                  <div className="space-y-4">
+                    {(tempValues.users || []).map((user: any, index: number) => (
+                      <div
+                        key={index}
+                        className="flex flex-col sm:flex-row gap-4 p-4 border border-gray-200 rounded-xl bg-gray-50/30"
                       >
-                        {status}
+                        {/* User Code */}
+                        <Input
+                          placeholder="User Code"
+                          value={user.code}
+                          onChange={(e) => handleItemChange("users", index, e.target.value, "code")}
+                          className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`user-code-input-${index}`}
+                        />
+
+                        {/* User Name */}
+                        <Input
+                          placeholder="User Name"
+                          value={user.name}
+                          onChange={(e) => handleItemChange("users", index, e.target.value, "name")}
+                          className="flex-1 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`user-name-input-${index}`}
+                        />
+
+                        {/* Multi-role Dropdown */}
+                        <Select
+                          onValueChange={(val) => {
+                            const newRoles = user.roles?.includes(val)
+                              ? user.roles.filter((r) => r !== val)
+                              : [...(user.roles || []), val];
+                            handleItemChange("users", index, newRoles, "roles");
+                          }}
+                        >
+                         <SelectTrigger className="flex-1">
+    {user.roles?.length ? (
+      <span>
+        {user.roles
+          .map((r: any) => rolesList.find((rl) => rl.id === r)?.name)
+          .join(", ")}
+      </span>
+    ) : (
+      <span className="text-gray-400">Select Roles</span>
+    )}
+  </SelectTrigger>
+                          <SelectContent>
+                            {rolesList.map((role) => (
+                              <SelectItem key={role.id} value={role.id}>
+                                <div className="flex items-center gap-2">
+                                  <input type="checkbox" checked={user.roles?.includes(role.id)} readOnly />
+                                  {role.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+
+                        {/* Remove User */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("users", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300 self-start"
+                          data-testid={`remove-user-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add User */}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleAddItem("users")}
+                      className="border-blue-200 hover:bg-blue-50 hover:border-blue-300"
+                      data-testid="add-user-button"
+                    >
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add User
+                    </Button>
+                  </div>
+
+                  {/* Save / Cancel */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      onClick={() => handleSave("users")}
+                      disabled={updateMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                      data-testid="save-users-button"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleCancel}
+                      className="border-gray-200 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // View Mode
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {settings?.users?.map((user: UserOptionType, index: number) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
+                      data-testid={`user-item-${index}`}
+                    >
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
+                        {user.code}
+                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {user.name}
+                        </span>
+                        <span className="text-xs text-gray-600">
+                          {user.roles?.map((r) => rolesList.find((rl) => rl.id === r)?.name).join(", ")}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+
+          <div className="grid gap-8 lg:grid-cols-2">
+          
+
+            {/* Sources Section */}
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Sources</CardTitle>
+                  <CardDescription className="text-gray-600 mt-1">Vehicle acquisition sources</CardDescription>
+                </div>
+                {editMode !== "sources" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit("sources")}
+                    className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                    data-testid="edit-sources-button"
+                  >
+                    <Pencil className="w-4 h-4 text-gray-600" />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-8 pt-0">
+                {editMode === "sources" ? (
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap gap-3">
+                      {(tempValues.sources || []).map((source: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={source}
+                            onChange={(e) => handleItemChange("sources", index, e.target.value)}
+                            className="w-44 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                            data-testid={`source-input-${index}`}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveItem("sources", index)}
+                            className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                            data-testid={`remove-source-${index}`}
+                          >
+                            <X className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => handleAddItem("sources")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-source-button">
+                        <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                        Add Source
+                      </Button>
+                    </div>
+                    <div className="flex gap-3 pt-2 border-t border-gray-100">
+                      <Button onClick={() => handleSave("sources")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-sources-button">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    {settings.sources.map((source, index) => (
+                      <span
+                        key={index}
+                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getSourceColor(source)}`}
+                        data-testid={`source-badge-${index}`}
+                      >
+                        {source}
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                )}
+              </CardContent>
+            </Card>
 
-        {/* Models Section - Full Width */}
-        <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
-            <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Models & Series</CardTitle>
-              <CardDescription className="text-gray-600 mt-1">Vehicle models and their available series</CardDescription>
-            </div>
-            {editMode !== "model" && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleEdit("model")}
-                className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                data-testid="edit-models-button"
-              >
-                <Pencil className="w-4 h-4 text-gray-600" />
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="p-8 pt-0">
-            {editMode === "model" ? (
-              <div className="space-y-8">
-                {(tempValues.model || []).map((model: ModelSeriesType, modelIndex: number) => (
-                  <div key={modelIndex} className="border border-gray-200 rounded-2xl p-6 space-y-6 bg-gray-50/50">
-                    <div className="flex items-center gap-4">
-                      <Label htmlFor={`model-${modelIndex}`} className="font-medium text-gray-700 min-w-[100px]">Model Name:</Label>
-                      <Input
-                        id={`model-${modelIndex}`}
-                        value={model.name}
-                        onChange={(e) => handleItemChange("model", modelIndex, e.target.value, "name")}
-                        className="w-48 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                        data-testid={`model-name-input-${modelIndex}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("model", modelIndex)}
-                        className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                        data-testid={`remove-model-${modelIndex}`}
-                      >
-                        <X className="w-4 h-4 text-red-500" />
+           
+
+            {/* Status Section */}
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+              <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+                <div>
+                  <CardTitle className="text-xl font-bold text-gray-900">Status</CardTitle>
+                  <CardDescription className="text-gray-600 mt-1">Vehicle status options</CardDescription>
+                </div>
+                {editMode !== "status" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEdit("status")}
+                    className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                    data-testid="edit-status-button"
+                  >
+                    <Pencil className="w-4 h-4 text-gray-600" />
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="p-8 pt-0">
+                {editMode === "status" ? (
+                  <div className="space-y-6">
+                    <div className="flex flex-wrap gap-3">
+                      {(tempValues.status || []).map((status: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={status}
+                            onChange={(e) => handleItemChange("status", index, e.target.value)}
+                            className="w-36 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                            data-testid={`status-input-${index}`}
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveItem("status", index)}
+                            className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                            data-testid={`remove-status-${index}`}
+                          >
+                            <X className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button variant="outline" onClick={() => handleAddItem("status")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-status-button">
+                        <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                        Add Status
                       </Button>
                     </div>
-                    <div className="space-y-4">
-                      <Label className="font-medium text-gray-700">Series:</Label>
-                      <div className="flex flex-wrap gap-3">
-                        {model.Series.map((series: string, seriesIndex: number) => (
-                          <div key={seriesIndex} className="flex items-center gap-2">
-                            <Input
-                              value={series}
-                              onChange={(e) => handleSeriesChange(modelIndex, seriesIndex, e.target.value)}
-                              className="w-40 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                              data-testid={`series-input-${modelIndex}-${seriesIndex}`}
-                            />
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleRemoveSeries(modelIndex, seriesIndex)}
-                              className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                              data-testid={`remove-series-${modelIndex}-${seriesIndex}`}
-                            >
-                              <X className="w-4 h-4 text-red-500" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddSeries(modelIndex)}
-                        className="border-blue-200 hover:bg-blue-50 hover:border-blue-300"
-                        data-testid={`add-series-${modelIndex}`}
-                      >
-                        <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                        Add Series
+                    <div className="flex gap-3 pt-2 border-t border-gray-100">
+                      <Button onClick={() => handleSave("status")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-status-button">
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                        Cancel
                       </Button>
                     </div>
                   </div>
-                ))}
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={() => handleAddItem("model")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-model-button">
-                    <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                    Add Model
-                  </Button>
-                </div>
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <Button onClick={() => handleSave("model")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-models-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {settings.model.map((model, index) => (
-                  <div key={index} className="border border-gray-200 rounded-2xl p-6 bg-gray-50/30 hover:bg-gray-50/50 transition-colors" data-testid={`model-card-${index}`}>
-                    <h4 className="font-bold text-lg text-gray-900 mb-4">{model.name}</h4>
-                    <div className="flex flex-wrap gap-3">
-                      {model.Series.map((series, seriesIndex) => (
-                        <span 
-                          key={seriesIndex} 
-                          className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-violet-100 text-violet-800 border border-violet-200 hover:bg-violet-200 transition-all duration-200 cursor-default shadow-sm"
-                          data-testid={`series-badge-${index}-${seriesIndex}`}
+                ) : (
+                  <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                    <div className="flex gap-3 min-w-max">
+                      {settings.status.map((status, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getStatusColor(status)}`}
+                          data-testid={`status-badge-${index}`}
                         >
-                          {series}
+                          {status}
                         </span>
                       ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Colors Section - Full Width */}
-        <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          {/* Colors Section - Full Width */}
+          <Card className="mt-8 mb-32 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
             <div>
               <CardTitle className="text-xl font-bold text-gray-900">Colors</CardTitle>
@@ -732,7 +912,9 @@ export default function Settings() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card> 
+
+
         </div>
       </div>
     </div>

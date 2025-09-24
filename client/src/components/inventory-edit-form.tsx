@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertInventorySchema, type InsertInventory, type Inventory } from "@shared/schema";
+import { insertInventorySchema, type InsertInventory, type Inventory, type VINDecodeResult } from "@shared/schema";
+import { Search, Check } from "lucide-react";
 
 interface InventoryEditFormProps {
   vehicle: Inventory;
@@ -19,6 +20,8 @@ interface InventoryEditFormProps {
 export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isVinLookupLoading, setIsVinLookupLoading] = useState(false);
+  const [vinLookupResult, setVinLookupResult] = useState<VINDecodeResult | null>(null);
 
   const form = useForm<InsertInventory>({
     resolver: zodResolver(insertInventorySchema),
@@ -33,9 +36,9 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
       certified: vehicle.certified || false,
       body: vehicle.body,
       price: vehicle.price,
-      bookValue: vehicle.bookValue || "0",
+      bookValue: vehicle.bookValue || 0,
       cost: vehicle.cost,
-      markup: vehicle.markup || "0",
+      markup: vehicle.markup || 0,
       odometer: vehicle.odometer,
       age: vehicle.age || 0,
     },
@@ -74,11 +77,64 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
   useEffect(() => {
     if (watchPrice && watchCost) {
       const calculatedMarkup = Number(watchPrice) - Number(watchCost);
-      if (form.getValues("markup") !== String(calculatedMarkup)) {
-        form.setValue("markup", String(calculatedMarkup));
+      if (form.getValues("markup") !== calculatedMarkup) {
+        form.setValue("markup", calculatedMarkup);
       }
     }
   }, [watchPrice, watchCost, form]);
+
+  // VIN Lookup function
+  const handleVinLookup = async () => {
+    const vin = form.getValues("vin");
+    if (!vin || vin.length !== 17) {
+      toast({
+        title: "Invalid VIN",
+        description: "VIN must be exactly 17 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsVinLookupLoading(true);
+    try {
+      const year = form.getValues("year");
+      const url = year ? `/api/inventory/vin-lookup/${vin}?year=${year}` : `/api/inventory/vin-lookup/${vin}`;
+      const response = await apiRequest(url);
+      
+      setVinLookupResult(response.vehicleData);
+      
+      // Auto-populate form fields
+      if (response.vehicleData.make) form.setValue("make", response.vehicleData.make);
+      if (response.vehicleData.model) form.setValue("model", response.vehicleData.model);
+      if (response.vehicleData.year) form.setValue("year", response.vehicleData.year);
+      if (response.vehicleData.series) form.setValue("series", response.vehicleData.series);
+      // Map NHTSA bodyClass to our body type options
+      if (response.vehicleData.bodyClass) {
+        const bodyClass = response.vehicleData.bodyClass.toLowerCase();
+        let mappedBody = "sedan"; // default
+        if (bodyClass.includes("suv") || bodyClass.includes("utility")) mappedBody = "suv";
+        else if (bodyClass.includes("truck") || bodyClass.includes("pickup")) mappedBody = "truck";
+        else if (bodyClass.includes("coupe")) mappedBody = "coupe";
+        else if (bodyClass.includes("convertible")) mappedBody = "convertible";
+        else if (bodyClass.includes("wagon")) mappedBody = "wagon";
+        else if (bodyClass.includes("hatchback")) mappedBody = "hatchback";
+        form.setValue("body", mappedBody);
+      }
+      
+      toast({
+        title: "VIN Lookup Successful",
+        description: "Vehicle details have been updated from VIN",
+      });
+    } catch (error: any) {
+      toast({
+        title: "VIN Lookup Failed",
+        description: error.message || "Failed to decode VIN. Please update vehicle details manually.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsVinLookupLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -129,17 +185,39 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                 <FormItem>
                   <FormLabel>VIN</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="1HGCM82633A123456"
-                      maxLength={17}
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
-                        field.onChange(value);
-                      }}
-                      data-testid="input-vin"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="1HGCM82633A123456"
+                        maxLength={17}
+                        {...field}
+                        onChange={(e) => {
+                          const value = e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+                          field.onChange(value);
+                        }}
+                        data-testid="input-vin"
+                        className={vinLookupResult ? "border-green-300" : ""}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleVinLookup}
+                        disabled={isVinLookupLoading || !field.value || field.value.length !== 17}
+                        data-testid="button-lookup-vin"
+                      >
+                        {isVinLookupLoading ? (
+                          <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
+                        ) : (
+                          <Search className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </div>
                   </FormControl>
+                  {vinLookupResult && (
+                    <div className="flex items-center gap-1 text-sm text-green-600">
+                      <Check className="w-3 h-3" />
+                      <span>Vehicle details updated from VIN</span>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -175,7 +253,12 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                 <FormItem>
                   <FormLabel>Make</FormLabel>
                   <FormControl>
-                    <Input placeholder="Toyota" {...field} data-testid="input-make" />
+                    <Input
+                      placeholder="Toyota"
+                      {...field}
+                      data-testid="input-make"
+                      className={vinLookupResult?.make ? "bg-green-50 border-green-300" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -190,22 +273,32 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                 <FormItem>
                   <FormLabel>Model</FormLabel>
                   <FormControl>
-                    <Input placeholder="Camry" {...field} data-testid="input-model" />
+                    <Input
+                      placeholder="Camry"
+                      {...field}
+                      data-testid="input-model"
+                      className={vinLookupResult?.model ? "bg-green-50 border-green-300" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            {/* Series */}
+            {/* Series/Trim */}
             <FormField
               control={form.control}
               name="series"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Series</FormLabel>
+                  <FormLabel>Series/Trim</FormLabel>
                   <FormControl>
-                    <Input placeholder="LE" {...field} data-testid="input-series" />
+                    <Input
+                      placeholder="LE"
+                      {...field}
+                      data-testid="input-series"
+                      className={vinLookupResult?.series ? "bg-green-50 border-green-300" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -264,13 +357,13 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Sedan">Sedan</SelectItem>
-                      <SelectItem value="SUV">SUV</SelectItem>
-                      <SelectItem value="Truck">Truck</SelectItem>
-                      <SelectItem value="Coupe">Coupe</SelectItem>
-                      <SelectItem value="Convertible">Convertible</SelectItem>
-                      <SelectItem value="Wagon">Wagon</SelectItem>
-                      <SelectItem value="Hatchback">Hatchback</SelectItem>
+                      <SelectItem value="sedan">Sedan</SelectItem>
+                      <SelectItem value="suv">SUV</SelectItem>
+                      <SelectItem value="truck">Truck</SelectItem>
+                      <SelectItem value="coupe">Coupe</SelectItem>
+                      <SelectItem value="convertible">Convertible</SelectItem>
+                      <SelectItem value="wagon">Wagon</SelectItem>
+                      <SelectItem value="hatchback">Hatchback</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -291,7 +384,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                       step="0.01"
                       placeholder="28450"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value || "0")}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                       data-testid="input-price"
                     />
                   </FormControl>
@@ -313,7 +406,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                       step="0.01"
                       placeholder="26500"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value || "0")}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                       data-testid="input-book-value"
                     />
                   </FormControl>
@@ -335,7 +428,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                       step="0.01"
                       placeholder="24000"
                       {...field}
-                      onChange={(e) => field.onChange(e.target.value || "0")}
+                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                       data-testid="input-cost"
                     />
                   </FormControl>
@@ -485,7 +578,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         step="0.01"
                         placeholder="28450"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                         data-testid="input-price"
                         className="font-semibold text-green-600"
                       />
@@ -508,7 +601,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         step="0.01"
                         placeholder="26500"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                         data-testid="input-book-value"
                         className="font-semibold text-blue-600"
                       />
@@ -531,7 +624,7 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         step="0.01"
                         placeholder="24000"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value || "0")}
+                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
                         data-testid="input-cost"
                         className="font-semibold text-red-600"
                       />
