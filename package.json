@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "build": "npm run build:client && npm run build:server",
-    "build:client": "cd client && npm run build",
+    "build:client": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=client/dist/index.js",
     "build:server": "tsc server/index.ts --outDir dist",
     "vercel-build": "npm run build"
   },
