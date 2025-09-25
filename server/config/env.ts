@@ -7,5 +7,5 @@ export const env = {
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || "30d",
 } as const;
 
-export const isDevelopment = env.NODE_ENV === "development";
-export const isProduction = env.NODE_ENV === "production";
+export const isDevelopment = process.env.NODE_ENV === "development";
+export const isProduction = process.env.NODE_ENV === "production";
