@@ -21,7 +21,7 @@ import { env, isDevelopment } from "./config/env";
     // Determine host (use 0.0.0.0 for Replit)
     const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
 
-const port = Number(env.PORT) || 3000;
+const port = process.env.PORT || 3000;
 const host = "0.0.0.0";
 
 server.listen(port, host, () => {
