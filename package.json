@@ -3,12 +3,14 @@
   "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "scripts": {
-    "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=client/dist/index.js",
-    "build:server": "tsc server/index.ts --outDir dist",
-    "vercel-build": "npm run build"
-  },
+"scripts": {
+  "dev": "NODE_ENV=development tsx server/index.ts",
+  "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js",
+  "start": "NODE_ENV=production node dist/index.js",
+  "check": "tsc",
+  "db:push": "drizzle-kit push",
+  "vercel-build": "npm run build"
+},
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
