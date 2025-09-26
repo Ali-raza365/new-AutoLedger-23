@@ -23,7 +23,7 @@ import { env, isDevelopment } from "./config/env";
     });
 
 
-    
+
 
 
     // Determine host (use 0.0.0.0 for Replit)
@@ -32,10 +32,10 @@ import { env, isDevelopment } from "./config/env";
     // Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
     const host = !isDevelopment ? "localhost" : "0.0.0.0";
     // Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
-// const host = "0.0.0.0";
+    // const host = "0.0.0.0";
 
 
-console.log({env})
+    console.log({ env })
 
 
     server.listen(env.PORT, host, () => {

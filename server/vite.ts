@@ -5,6 +5,7 @@ import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
+import { fileURLToPath } from "url";
 
 const viteLogger = createLogger();
 
@@ -67,19 +68,27 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
-export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
+export function serveStatic(app: express.Express) {
+  // Derive __dirname in ESM regardless of bundling
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
-  if (!fs.existsSync(distPath)) {
+  // Determine where your built frontend is located, relative to this server file
+  // If your build outputs to `dist/public`, and this server file is `dist/index.js`,
+  // then `publicDir` should be `path.resolve(__dirname, "public")`
+  const publicDir = path.resolve(__dirname, "public");
+
+  console.log("serveStatic: publicDir =", publicDir);
+
+  if (!fs.existsSync(publicDir)) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find the build directory: ${publicDir}, make sure to build the client first`
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(publicDir));
 
-  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(publicDir, "index.html"));
   });
 }
