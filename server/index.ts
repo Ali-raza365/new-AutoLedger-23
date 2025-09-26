@@ -1,5 +1,6 @@
 import { createServer } from "http";
-import { createApp } from "./app";
+import { createApp } from "./app.js"; // ✅ for ESM in dist
+
 import { setupVite, serveStatic } from "./vite";
 import { env, isDevelopment } from "./config/env";
 
@@ -33,9 +34,6 @@ import { env, isDevelopment } from "./config/env";
     // const host = !isDevelopment ? "localhost" : "0.0.0.0";
     // Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
 const host = "0.0.0.0";
-
-
-
 
     server.listen(process.env.PORT, host, () => {
       console.log(`🚀 Server running on ${host}:${process.env.PORT}`);
