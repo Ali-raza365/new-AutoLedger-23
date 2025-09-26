@@ -1,5 +1,5 @@
 export const env = {
-  NODE_ENV: process.env.NODE_ENV || "development",
+  NODE_ENV: process.env.NODE_ENV || "production",
   PORT: process.env.PORT || "3000",
   DATABASE_URL: process.env.DATABASE_URL || "mongodb+srv://new_user:db123456@cluster0.nug88fr.mongodb.net/dealerpro",
   MONGODB_URL: process.env.MONGODB_URL || "mongodb+srv://new_user:db123456@cluster0.nug88fr.mongodb.net/dealerpro",
