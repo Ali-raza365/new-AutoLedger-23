@@ -326,6 +326,7 @@ export default function SalesForm({ onSuccess }: SalesFormProps) {
                         <Input 
                           placeholder={foundVehicle ? "Auto-filled from VIN search" : "Enter stock number"} 
                           {...field} 
+                          disabled
                           data-testid="input-stock-number-sales" 
                         />
                       </FormControl>

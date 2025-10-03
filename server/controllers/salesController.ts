@@ -30,15 +30,31 @@ export const createSalesItem = asyncHandler(async (req: Request, res: Response, 
   if (!inventoryItem) {
     throw new ValidationError("Stock number not found in inventory");
   }
-  
-  // Create the sales record
+
+  console.log(validatedData)
+
+  // Create the sales record first
   const sale = await Sales.create({
     ...validatedData,
     createdAt: new Date(),
   });
-  
-  sendSuccess(res, sale, "Sales record created successfully", 201);
+
+  // ✅ After sale is created, update inventory status
+  const updatedInventory = await Inventory.findOneAndUpdate(
+    { stockNumber: validatedData.stockNumber },
+    {
+      $set: {
+        currentStatus: "Sold",   // or "Delivered" / "Pending" depending on your flow
+        statusDate: new Date(),
+      }
+    },
+    { new: true } // return updated document
+  );
+
+  // send both sale + updated inventory in response if you like
+  sendSuccess(res, { sale, updatedInventory }, "Sales record created successfully", 201);
 });
+
 
 export const updateSalesItem = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;

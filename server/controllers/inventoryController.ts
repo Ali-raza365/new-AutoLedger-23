@@ -32,6 +32,9 @@ export const getInventoryByVin = asyncHandler(async (req: Request, res: Response
   if (!item) {
     throw new NotFoundError("Vehicle not found");
   }
+  if(item.currentStatus === "Sold" ){
+    throw new NotFoundError("Vehicle is Sold");
+  }
 
   sendSuccess(res, item, "Vehicle retrieved successfully");
 });
