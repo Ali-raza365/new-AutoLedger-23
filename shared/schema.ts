@@ -6,11 +6,7 @@ import { c } from "node_modules/vite/dist/node/types.d-aGj9QkWt";
 export type UserType = "admin" | "manager" | "employee";
 
 // Audit trail entry for tracking changes
-export interface AuditTrailEntry {
-  user: string;
-  action: string;
-  timestamp: Date;
-}
+
 
 // Buyer information for settings
 export interface BuyerInfo {
@@ -45,6 +41,8 @@ export interface VINDecodeResult {
   series?: string;
   error?: string;
   newUsed?: string;
+  seriesDetail?: string;
+  price?: any;
 }
 
 // MongoDB Document interfaces
@@ -58,57 +56,65 @@ export interface UserDocument {
 }
 export interface InventoryDocument {
   _id?: ObjectId;
-  // Basic Vehicle Information
-  stockNumber: string;
-  dateLogged: Date;
-  vin: string;
-  year: number;
-  make: string;
-  model: string;
-  trim?: string;
-  series?: string;
-  color: string;
-  certified: boolean;
-  body: string;
-  odometer: number;
-  newUsed: string;
 
-  // Purchase Information
-  purchaseDate?: Date | null;
-  channel?: string | null; // Trade-In, Auction, Private Party, Service Drive, Wholesale
-  specificSource?: string | null;
-  buyerName?: string | null;
-  buyerId?: string | null;
-  storeLocation?: string | null;
-  purchasePrice?: string | null;
-  customerName?: string | null;
-  dealNumber?: string | null;
+  // Basic Vehicle Information
+  stockNumber: string;                        // "Stock #"
+  vin: string;                                // "VIN"
+  year: number;                               // "Year"
+  make: string;                               // "Make"
+  model: string;                              // "Model"
+  series?: string;                            // "Series"
+  seriesDetail?: string;                      // "Series Detail"
+  color: string;                              // "Color"
+  interiorDescription?: string;               // "Interior Description"
+  exitStrategy?: string;                      // "Exit Strategy"
+  certified: boolean;                         // "Certified"
+  body: string;                               // "Body"
+  odometer: number;                           // "Odometer"
+  newUsed: "New" | "Used";                    // required
+  source?: string;                             // "Specific Source"
 
   // Financial Analysis
-  price: number; // Current listing price
-  bookValue?: number | null;
-  cost?: number | null;
-  markup?: number | null;
-  mmrValue?: string | null;
-  kbbWholesale?: string | null;
-  marketVariance?: string | null;
-  plannedRetail?: string | null;
-  estReconCost?: string | null;
-  projectedGross?: string | null;
+  price: number;                              // "Price"
+  pendingPrice?: number | null;               // "Pending Price"
+  bookValue?: number | null;                  // "Book Value"
+  cost?: number | null;                       // "Cost"
+  applicableCost?: number | null;             // "Applicable Cost"
+  originalCost?: number | null;               // "Original Cost"
+  costDifference?: number | null;             // "Cost Difference"
+  markup?: number | null;                     // "Markup"
+  water?: number | null;                      // "Water"
+  applicableWater?: number | null;            // "Applicable Water"
+
+  // Market / Analytics
+  overall?: number | null;                    // "Overall"
+  marketDaysSupplyLikeMine?: number | null;   // "Market Days Supply Like Mine"
+  costToMarketPct?: number | null;            // "% Cost To Market"
+  applicableCostToMarketPct?: number | null;  // "Applicable % Cost To Market"
+  marketPct?: number | null;                  // "% Mkt"
+
+  // Ranking
+  priceRank?: string | null;                  // "Price Rank"
+  vRank?: string | null;                      // "vRank"
+  priceRankBucket?: string | null;            // "Price Rank Bucket"
+  vRankBucket?: string | null;                // "vRank Bucket"
 
   // Status & Approval
-  hqAppraisalSuggested?: boolean;
-  redFlagStatus?: string | null;
-  currentStatus?: string | null;
-  statusDate?: Date | null;
+  currentStatus?: string | null;              // ✅ keep
+  statusDate?: Date ;                   // ✅ keep
 
-  // Legacy fields for backward compatibility
-  age?: number | null;
+  // Legacy / compatibility
+  age?: number | null;                        // "Age"
+
+  // Metadata
+  dateLogged: Date;
   createdAt: Date;
-
-  // Audit Trail
-  auditTrail?: AuditTrailEntry[];
 }
+export type Inventory = Omit<InventoryDocument, "_id"> & {
+  id: string;
+};
+
+
 
 export interface SalesDocument {
   _id?: ObjectId;
@@ -170,14 +176,75 @@ export interface SettingsDocument {
   stockNumberSuffixRule: StockNumberRule;
   stockNumberSequentialCounter: number;
 
+
+  // Stock Number Generation Rules - Used Vehicles
+  usedStockNumberPrefixRule?: StockNumberRule;
+  usedStockNumberSuffixRule?: StockNumberRule;
+  usedStockNumberSequentialCounter?: number;
+
+  // Stock Number Generation Rules - New Vehicles
+  newStockNumberPrefixRule?: StockNumberRule;
+  newStockNumberSuffixRule?: StockNumberRule;
+  newStockNumberSequentialCounter?: number;
+
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Zod validation schemas for client-side form validation
 export const insertInventorySchema = z.object({
   // Basic Vehicle Information
   stockNumber: z.string().min(1, "Stock number is required"),
+  vin: z.string().length(17, "VIN must be exactly 17 characters"),
+  year: z.number().min(1900).max(2030),
+  make: z.string().min(1, "Make is required"),
+  model: z.string().min(1, "Model is required"),
+  series: z.string().optional(),
+  seriesDetail: z.string().optional(),
+  color: z.string().min(1, "Color is required"),
+  interiorDescription: z.string().optional(),
+  exitStrategy: z.string().optional(),
+  certified: z.boolean().default(false),
+  body: z.string().min(1, "Body is required"),
+  source: z.string().min(1, "source is required"),
+
+  odometer: z.number().min(0, "Odometer cannot be negative"),
+  newUsed: z.enum(["New", "Used"], {
+    required_error: "New/Used must be specified",
+  }),
+
+  // Financial Analysis
+  price: z.number().min(1, "Price is required"),
+  pendingPrice: z.number().optional().nullable(),
+  bookValue: z.number().optional().nullable(),
+  cost: z.number().optional().nullable(),
+  applicableCost: z.number().optional().nullable(),
+  originalCost: z.number().optional().nullable(),
+  costDifference: z.number().optional().nullable(),
+  markup: z.number().optional().nullable(),
+  water: z.number().optional().nullable(),
+  applicableWater: z.number().optional().nullable(),
+
+  // Market / Analytics
+  overall: z.number().optional().nullable(),
+  marketDaysSupplyLikeMine: z.number().optional().nullable(),
+  costToMarketPct: z.number().optional().nullable(),
+  applicableCostToMarketPct: z.number().optional().nullable(),
+  marketPct: z.number().optional().nullable(),
+
+  // Ranking
+  priceRank: z.string().optional().nullable(),
+  vRank: z.string().optional().nullable(),
+  priceRankBucket: z.string().optional().nullable(),
+  vRankBucket: z.string().optional().nullable(),
+
+  // Status & Approval
+  currentStatus: z.string().optional().nullable(),
+  statusDate: z.preprocess((val) => {
+    if (typeof val === "string" || val instanceof Date) {
+      return new Date(val);
+    }
+    return val;
+  }, z.date()).optional().nullable(),
   dateLogged: z.preprocess((val) => {
     if (typeof val === "string" || val instanceof Date) {
       return new Date(val);
@@ -185,60 +252,10 @@ export const insertInventorySchema = z.object({
     return val;
   }, z.date()).optional().default(() => new Date()),
 
-  vin: z.string().length(17, "VIN must be exactly 17 characters"),
-  year: z.number().min(1900).max(2030).optional(),
-  make: z.string().optional(),
-  model: z.string().optional(),
-  newUsed: z.string().optional(),
-  trim: z.string().optional(),
-  series: z.string().optional(),
-  color: z.string().optional(),
-  certified: z.boolean().default(false),
-  body: z.string().optional(),
-  odometer: z.number().min(0, "Odometer cannot be negative"),
-
-  // Purchase Information
-  purchaseDate: z.preprocess((val) => {
-    if (typeof val === "string" || val instanceof Date) {
-      return new Date(val);
-    }
-    return val;
-  }, z.date()).optional().default(() => new Date()),
-  channel: z.string().optional().nullable(),
-  specificSource: z.string().optional().nullable(),
-  buyerName: z.string().optional().nullable(),
-  buyerId: z.string().optional().nullable(),
-  storeLocation: z.string().optional().nullable(),
-  purchasePrice: z.string().optional().nullable(),
-  customerName: z.string().optional().nullable(),
-  dealNumber: z.string().optional().nullable(),
-
-  // Financial Analysis
-  price: z.number().min(0, "Price must be a positive number"),
-  bookValue: z.number().min(0).optional().nullable(),
-  cost: z.number().min(0).optional().nullable(),
-  markup: z.number().optional().nullable(),
-  mmrValue: z.string().optional().nullable(),
-  kbbWholesale: z.string().optional().nullable(),
-  marketVariance: z.string().optional().nullable(),
-  plannedRetail: z.string().optional().nullable(),
-  estReconCost: z.string().optional().nullable(),
-  projectedGross: z.string().optional().nullable(),
-
-  // Status & Approval
-  hqAppraisalSuggested: z.boolean().optional().default(false),
-  redFlagStatus: z.string().optional().nullable(),
-  currentStatus: z.string().optional().nullable(),
-  statusDate: z.preprocess((val) => {
-    if (typeof val === "string" || val instanceof Date) {
-      return new Date(val);
-    }
-    return val;
-  }, z.date()).optional().default(() => new Date()),
-
-  // Legacy fields for backward compatibility
+  // Legacy
   age: z.number().optional().nullable(),
 });
+
 
 
 export const colorOptionSchema = z.object({
@@ -324,62 +341,32 @@ export const insertSettingsSchema = z.object({
     customValue: z.string().optional(),
   }).optional(),
   stockNumberSequentialCounter: z.number().min(1).optional(),
+
+  // Used Vehicles Stock Number Rules
+  usedStockNumberPrefixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  usedStockNumberSuffixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  usedStockNumberSequentialCounter: z.number().min(1).optional(),
+
+  // New Vehicles Stock Number Rules
+  newStockNumberPrefixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  newStockNumberSuffixRule: z.object({
+    type: z.enum(["none", "source", "buyer", "custom"]),
+    customValue: z.string().optional(),
+  }).optional(),
+  newStockNumberSequentialCounter: z.number().min(1).optional(),
 });
 
 // Client-facing types (without MongoDB ObjectId)
-export interface Inventory {
-  id: string;
-  // Basic Vehicle Information
-  stockNumber: string;
-  dateLogged: Date;
-  vin: string;
-  year: number;
-  make: string;
-  model: string;
-  trim?: string | null;
-  series?: string | null;
-  color: string;
-  certified: boolean;
-  body: string;
-  odometer: number;
-  newUsed: string;
 
-  // Purchase Information
-  purchaseDate?: Date | null;
-  channel?: string | null;
-  specificSource?: string | null;
-  buyerName?: string | null;
-  buyerId?: string | null;
-  storeLocation?: string | null;
-  purchasePrice?: string | null;
-  customerName?: string | null;
-  dealNumber?: string | null;
-
-  // Financial Analysis
-  price: number;
-  bookValue?: number | null;
-  cost?: number | null;
-  markup?: number | null;
-  mmrValue?: string | null;
-  kbbWholesale?: string | null;
-  marketVariance?: string | null;
-  plannedRetail?: string | null;
-  estReconCost?: string | null;
-  projectedGross?: string | null;
-
-  // Status & Approval
-  hqAppraisalSuggested?: boolean;
-  redFlagStatus?: string | null;
-  currentStatus?: string | null;
-  statusDate?: Date | null;
-
-  // Legacy fields for backward compatibility
-  age?: number | null;
-  createdAt: Date;
-
-  // Audit Trail
-  auditTrail?: AuditTrailEntry[];
-}
 
 export interface Sales {
   id: string;
@@ -417,6 +404,35 @@ export interface Sales {
   createdAt: Date;
 }
 
+/**
+ * Color option schema
+ * Mirrors Mongoose: { code: string, name: string }
+ */
+export const insertColorSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(1, "Code is required")
+    .toUpperCase(), // will normalize to uppercase
+  name: z.string().trim().min(1, "Name is required"),
+});
+
+export type InsertColorInput = z.infer<typeof insertColorSchema>;
+
+/**
+ * User schema
+ * Mirrors Mongoose: { code: string, name: string, roles: string[] }
+ */
+export const insertUserSchema = z.object({
+  code: z.string().trim().min(1, "Code is required"),
+  name: z.string().trim().min(1, "Name is required"),
+  roles: z
+    .array(z.enum(["sales", "closer", "manager", "finance", "source"]))
+    .default([]),
+});
+
+export type InsertUserInput = z.infer<typeof insertUserSchema>;
+
 // Client-facing Settings interface
 export interface Settings {
   id: string;
@@ -425,6 +441,7 @@ export interface Settings {
   years: number[];
   status: string[];
   colors: ColorOptionType[];
+  users: any[];
 
   // Business Configuration
   rooftopCode?: string;
@@ -433,6 +450,17 @@ export interface Settings {
   maxReconPercentage?: number;
   buyers?: BuyerInfo[];
   channels?: string[];
+
+
+  // Stock Number Generation Rules - Used Vehicles
+  usedStockNumberPrefixRule?: StockNumberRule;
+  usedStockNumberSuffixRule?: StockNumberRule;
+  usedStockNumberSequentialCounter?: number;
+
+  // Stock Number Generation Rules - New Vehicles
+  newStockNumberPrefixRule?: StockNumberRule;
+  newStockNumberSuffixRule?: StockNumberRule;
+  newStockNumberSequentialCounter?: number;
 
   // Stock Number Generation Rules (Enhanced) 
   stockNumberPrefixRule?: StockNumberRule;

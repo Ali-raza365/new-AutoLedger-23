@@ -8,7 +8,8 @@ import {
   updateInventoryItem,
   deleteInventoryItem,
   searchInventory,
-  lookupVinData
+  lookupVinData,
+    bulkImportInventory
 } from "../controllers";
 import { 
   authenticateToken, 
@@ -34,7 +35,10 @@ router.get("/:id", requireAnyRole, getInventoryById);
 
 // Create/Update routes (managers and admins)
 router.post("/", requireManagerOrAdmin, validateBody(insertInventorySchema), createInventoryItem);
+router.post("/bulk-import", requireManagerOrAdmin, bulkImportInventory);
+
 router.put("/:id", requireManagerOrAdmin, updateInventoryItem);
+
 
 // Delete routes (admin only)
 router.delete("/:id", requireAdmin, deleteInventoryItem);

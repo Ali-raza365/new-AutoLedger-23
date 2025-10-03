@@ -28,7 +28,7 @@ const colorOptionSchema = new Schema<ColorOptionType>({
     required: true,
     trim: true,
   },
-}, { _id: false });
+});
 
 // Define the schema for a single User item
 const UserSchema = new Schema({
@@ -47,7 +47,7 @@ const UserSchema = new Schema({
     enum: ['sales', 'closer', 'manager', 'finance', 'source'],
     default: [],
   },
-}, { _id: false });
+});
 
 const stockNumberRuleSchema = new mongoose.Schema(
   {
@@ -89,7 +89,7 @@ const settingsSchema = new Schema<SettingsDocument>({
     type: [UserSchema],
     default: [],
   },
-  
+
   // Business Configuration
   rooftopCode: {
     type: String,
@@ -117,10 +117,40 @@ const settingsSchema = new Schema<SettingsDocument>({
     type: String,
     trim: true,
   }],
-  
+
+  // Stock Number Generation Rules - Used Vehicles
+  usedStockNumberPrefixRule: {
+    type: stockNumberRuleSchema,
+    default: null,
+  },
+  usedStockNumberSuffixRule: {
+    type: stockNumberRuleSchema,
+    default: null,
+  },
+  usedStockNumberSequentialCounter: {
+    type: Number,
+    min: 0,
+    default: 1000,
+  },
+
+  // Stock Number Generation Rules - New Vehicles
+  newStockNumberPrefixRule: {
+    type: stockNumberRuleSchema,
+    default: null,
+  },
+  newStockNumberSuffixRule: {
+    type: stockNumberRuleSchema,
+    default: null,
+  },
+  newStockNumberSequentialCounter: {
+    type: Number,
+    min: 0,
+    default: 1000,
+  },
+
   // Stock Number Configuration
   stockNumberPrefixRule: {
-  type: stockNumberRuleSchema,
+    type: stockNumberRuleSchema,
     required: true,
   },
   stockNumberSuffixRule: {
@@ -147,7 +177,7 @@ const settingsSchema = new Schema<SettingsDocument>({
 });
 
 // Update the updatedAt field before saving
-settingsSchema.pre("save", function(next) {
+settingsSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });

@@ -10,9 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Settings as SettingsIcon, Plus, X, Save, Edit, Pencil, Hash } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import type { Settings, StockNumberRule, UserOptionType } from "@shared/schema";
+import type { ColorOptionType, Settings, StockNumberRule, UserOptionType } from "@shared/schema";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
+import { CsvUpload } from "@/components/csv-upload";
+import { StockNumberCard } from "@/components/StockNumberGenerator";
 const rolesList = [
   { id: "sales", name: "Salesperson" },
   { id: "closer", name: "Closer" },
@@ -97,13 +98,7 @@ export default function Settings() {
         ...tempValues,
         [section]: [...currentValues, { code: "", name: "" }]
       });
-    }
-    else if (section === "years") {
-      const currentYear = new Date().getFullYear();
-      setTempValues({
-        ...tempValues,
-        [section]: [...currentValues, currentYear]
-      });
+
     } else {
       setTempValues({
         ...tempValues,
@@ -137,81 +132,103 @@ export default function Settings() {
   };
 
 
-  // Stock Number Generation helper functions
-  const handleStockNumberEdit = () => {
+// Stock Number Generation helper functions for USED vehicles
+  const handleStockNumberEdit = (type: 'used' | 'new') => {
     if (!settings) return;
-    setEditMode("stockNumber");
-    setTempValues({
-      stockNumberPrefixRule: settings.stockNumberPrefixRule || { type: "none" },
-      stockNumberSequentialCounter: Number(settings.stockNumberSequentialCounter),
-      stockNumberSuffixRule: settings.stockNumberSuffixRule || { type: "none" },
-    });
+    setEditMode(`stockNumber-${type}`);
+    
+    if (type === 'used') {
+      setTempValues({
+        usedStockNumberPrefixRule: settings.usedStockNumberPrefixRule || { type: "none" },
+        usedStockNumberSequentialCounter: Number(settings.usedStockNumberSequentialCounter || 1004),
+        usedStockNumberSuffixRule: settings.usedStockNumberSuffixRule || { type: "none" },
+      });
+    } else {
+      setTempValues({
+        newStockNumberPrefixRule: settings.newStockNumberPrefixRule || { type: "none" },
+        newStockNumberSequentialCounter: Number(settings.newStockNumberSequentialCounter || 2000),
+        newStockNumberSuffixRule: settings.newStockNumberSuffixRule || { type: "none" },
+      });
+    }
   };
 
-  const handleStockNumberSave = () => {
+  const handleStockNumberSave = (type: 'used' | 'new') => {
     if (!settings) return;
 
-    const updatedSettings = {
+    const updatedSettings = type === 'used' ? {
       ...settings,
-      stockNumberPrefixRule: tempValues.stockNumberPrefixRule,
-      stockNumberSuffixRule: tempValues.stockNumberSuffixRule,
-      stockNumberSequentialCounter: Number(tempValues.stockNumberSequentialCounter),
+      usedStockNumberPrefixRule: tempValues.usedStockNumberPrefixRule,
+      usedStockNumberSuffixRule: tempValues.usedStockNumberSuffixRule,
+      usedStockNumberSequentialCounter: Number(tempValues.usedStockNumberSequentialCounter),
+    } : {
+      ...settings,
+      newStockNumberPrefixRule: tempValues.newStockNumberPrefixRule,
+      newStockNumberSuffixRule: tempValues.newStockNumberSuffixRule,
+      newStockNumberSequentialCounter: Number(tempValues.newStockNumberSequentialCounter),
     };
 
     updateMutation.mutate(updatedSettings);
   };
 
-  const handleRuleChange = (ruleType: 'prefix' | 'suffix', newRule: StockNumberRule) => {
-    const key = ruleType === 'prefix' ? 'stockNumberPrefixRule' : 'stockNumberSuffixRule';
+  const handleRuleChange = (type: 'used' | 'new', ruleType: 'prefix' | 'suffix', newRule: StockNumberRule) => {
+    const prefix = type === 'used' ? 'usedStockNumber' : 'newStockNumber';
+    const key = ruleType === 'prefix' ? `${prefix}PrefixRule` : `${prefix}SuffixRule`;
     setTempValues({
       ...tempValues,
       [key]: newRule
     });
   };
 
-  console.log(tempValues)
-
-  const generateStockNumberPreview = (): string => {
-    const prefixRule = editMode === "stockNumber" ? tempValues.stockNumberPrefixRule : settings?.stockNumberPrefixRule;
-    const suffixRule = editMode === "stockNumber" ? tempValues.stockNumberSuffixRule : settings?.stockNumberSuffixRule;
-    const sequentialNumber = editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter;
-
-    // Sequential number (example)
-    // const sequentialNumber = settings?.stockNumberSequentialCounter || 101441;
+  const generateStockNumberPreview = (type: 'used' | 'new'): string => {
+    const prefix = type === 'used' ? 'usedStockNumber' : 'newStockNumber';
+    const isEditing = editMode === `stockNumber-${type}`;
+    
+    const prefixRule = isEditing 
+      ? tempValues[`${prefix}PrefixRule`] 
+      : settings?.[`${prefix}PrefixRule` as keyof Settings];
+    const suffixRule = isEditing 
+      ? tempValues[`${prefix}SuffixRule`] 
+      : settings?.[`${prefix}SuffixRule` as keyof Settings];
+    const sequentialNumber = isEditing 
+      ? tempValues[`${prefix}SequentialCounter`] 
+      : settings?.[`${prefix}SequentialCounter` as keyof Settings];
 
     // Generate prefix
-    let prefix = "";
+    let prefixStr = "";
     if (prefixRule?.type === "source" && settings?.sources?.[0]) {
-      prefix = settings.sources[0].substring(0, 2).toUpperCase();
+      prefixStr = settings.sources[0].substring(0, 2).toUpperCase();
     } else if (prefixRule?.type === "buyer") {
-      prefix = 'BUY';  //settings.buyers[0].id.substring(0, 2).toUpperCase() ||
+      prefixStr = 'BUY';
     } else if (prefixRule?.type === "custom" && "customValue" in prefixRule) {
-      prefix = prefixRule.customValue;
+      prefixStr = prefixRule.customValue;
     }
 
     // Generate suffix
-    let suffix = "";
+    let suffixStr = "";
     if (suffixRule?.type === "source" && settings?.sources?.[0]) {
-      suffix = settings.sources[0].substring(0, 2).toUpperCase();
+      suffixStr = settings.sources[0].substring(0, 2).toUpperCase();
     } else if (suffixRule?.type === "buyer") {
-      suffix = 'BUY';  //settings.buyers[0].id.substring(0, 2).toUpperCase() ||
+      suffixStr = 'BUY';
     } else if (suffixRule?.type === "custom" && "customValue" in suffixRule) {
-      suffix = suffixRule.customValue;
+      suffixStr = suffixRule.customValue;
     }
 
-    return `${prefix}${sequentialNumber}${suffix}`;
+    return `${prefixStr}${sequentialNumber || (type === 'used' ? 1004 : 2000)}${suffixStr}`;
   };
 
-  const handleCounterChange = (e: any) => {
+  const handleCounterChange = (type: 'used' | 'new', e: any) => {
     const value = e.target.value;
+    const prefix = type === 'used' ? 'usedStockNumber' : 'newStockNumber';
+    
     // Only allow numbers
     if (/^\d*$/.test(value)) {
       setTempValues(prev => ({
         ...prev,
-        stockNumberSequentialCounter: value,
+        [`${prefix}SequentialCounter`]: value,
       }));
     }
   };
+
 
   // Helper function to get status color based on status value
   const getStatusColor = (status: string): string => {
@@ -266,6 +283,7 @@ export default function Settings() {
     );
   }
 
+
   return (
     <div className="flex flex-col h-screen bg-gray-50/30">
       {/* Sticky Header */}
@@ -287,236 +305,17 @@ export default function Settings() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto px-6 py-8">
 
-          {/* Stock Number Generation Section - Full Width */}
-          <Card className="mt-8 mb-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
-              <div>
-                <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                  <Hash className="w-6 h-6 text-blue-600" />
-                  Stock Number Generation
-                </CardTitle>
-                <CardDescription className="text-gray-600 mt-1">Configure how stock numbers are built when a Source is selected in Inventory</CardDescription>
-              </div>
-              {editMode !== "stockNumber" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleStockNumberEdit}
-                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                  data-testid="edit-stock-number-button"
-                >
-                  <Pencil className="w-4 h-4 text-gray-600" />
-                </Button>
-              )}
-            </CardHeader>
-            <CardContent className="p-8 pt-0">
-              {editMode === "stockNumber" ? (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Prefix Rule Section */}
-                    <div className="space-y-4">
-                      <Label className="text-base font-semibold text-gray-900">Prefix Rule</Label>
-                      <div className="space-y-4">
-                        <Select
-                          value={tempValues.stockNumberPrefixRule?.type || "none"}
-                          onValueChange={(value: string) => {
-                            if (value === "custom") {
-                              handleRuleChange('prefix', { type: "custom", customValue: "" });
-                            } else {
-                              handleRuleChange('prefix', { type: value as any });
-                            }
-                          }}
-                          data-testid="select-prefix-rule"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select prefix rule" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="source">Source </SelectItem>
-                            <SelectItem value="buyer">Buyer </SelectItem>
-                            <SelectItem value="custom">Custom (fixed value)</SelectItem>
-                          </SelectContent>
-                        </Select>
+          <StockNumberCard settings={settings} type="used" />
+          <StockNumberCard settings={settings} type="new"/>
 
-                        {tempValues.stockNumberPrefixRule?.type === "custom" && (
-                          <Input
-                            placeholder="Enter custom prefix (e.g., AU)"
-                            value={tempValues.stockNumberPrefixRule.customValue || ""}
-                            onChange={(e) => {
-                              handleRuleChange('prefix', {
-                                type: "custom",
-                                customValue: e.target.value
-                              });
-                            }}
-                            className="w-full"
-                            data-testid="input-prefix-custom"
-                          />
-                        )}
-                      </div>
-                    </div>
+          {/* Used Vehicle Stock Number Card */}
+          {/* {renderStockNumberCard('used')} */}
 
-                    {/* Suffix Rule Section */}
-                    <div className="space-y-4">
-                      <Label className="text-base font-semibold text-gray-900">Suffix Rule</Label>
-                      <div className="space-y-4">
-                        <Select
-                          value={tempValues.stockNumberSuffixRule?.type || "none"}
-                          onValueChange={(value: string) => {
-                            if (value === "custom") {
-                              handleRuleChange('suffix', { type: "custom", customValue: "" });
-                            } else {
-                              handleRuleChange('suffix', { type: value as any });
-                            }
-                          }}
-                          data-testid="select-suffix-rule"
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select suffix rule" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            <SelectItem value="source">Source </SelectItem>
-                            <SelectItem value="buyer">Buyer </SelectItem>
-                            <SelectItem value="custom">Custom (fixed value)</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        {tempValues.stockNumberSuffixRule?.type === "custom" && (
-                          <Input
-                            placeholder="Enter custom suffix (e.g., K)"
-                            value={tempValues.stockNumberSuffixRule.customValue || ""}
-                            onChange={(e) => {
-                              handleRuleChange('suffix', {
-                                type: "custom",
-                                customValue: e.target.value
-                              });
-                            }}
-                            className="w-full"
-                            data-testid="input-suffix-custom"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <Label className="text-base font-semibold text-gray-900">Sequential Number</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter sequential number"
-                      value={tempValues.stockNumberSequentialCounter}
-                      onChange={handleCounterChange}
-                      className="w-full"
-                      data-testid="input-sequential-counter"
-                    />
-                    <p className="text-sm text-gray-600 mt-2">The number will auto-increment from this value.</p>
-                  </div>
-
-                  {/* Preview Section */}
-                  <div className="border border-blue-200 rounded-xl p-6 bg-blue-50/30">
-                    <Label className="text-base font-semibold text-gray-900 mb-3 block">Preview</Label>
-                    <div className="text-2xl font-mono font-bold text-blue-800 bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
-                      {generateStockNumberPreview()}
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">Auto-updates as you change settings</p>
-                  </div>
-
-                  {/* Sequential Number Info */}
-                  <div className="bg-gray-50/50 rounded-xl p-6 border border-gray-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <Hash className="w-5 h-5 text-gray-600" />
-                      <Label className="text-base font-semibold text-gray-900">Sequential Number</Label>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-2">Automatically increments each time a stock is created.</p>
-                    <p className="text-sm text-gray-500">
-                      Current counter: <span className="font-mono font-semibold">{ editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter || 101441}</span>
-                    </p>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <Button
-                      onClick={handleStockNumberSave}
-                      disabled={updateMutation.isPending}
-                      className="bg-blue-600 hover:bg-blue-700"
-                      data-testid="save-stock-number-button"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Current Configuration Display */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700">Prefix Rule</Label>
-                      <div className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
-                        <span className="capitalize font-medium text-gray-900">
-                          {settings?.stockNumberPrefixRule?.type || "None"}
-                        </span>
-                        {settings?.stockNumberPrefixRule?.type === "custom" && (
-                          <span className="ml-2 text-sm text-gray-600">
-                            ({settings.stockNumberPrefixRule.customValue})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700">Suffix Rule</Label>
-                      <div className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
-                        <span className="capitalize font-medium text-gray-900">
-                          {settings?.stockNumberSuffixRule?.type || "None"}
-                        </span>
-                        {settings?.stockNumberSuffixRule?.type === "custom" && (
-                          <span className="ml-2 text-sm text-gray-600">
-                            ({settings.stockNumberSuffixRule.customValue})
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium text-gray-700">Current Preview</Label>
-                      <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-200">
-                        <span className="font-mono font-bold text-blue-800 text-lg">
-                          {generateStockNumberPreview()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Sequential Counter Info */}
-                  <div className="bg-gray-50/30 rounded-xl p-6 border border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Hash className="w-5 h-5 text-gray-600" />
-                        <div>
-                          <p className="font-medium text-gray-900">Sequential Number</p>
-                          <p className="text-sm text-gray-600">Automatically increments each time a stock is created</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">Current counter</p>
-                        <p className="text-xl font-mono font-bold text-gray-900">
-                          { editMode === "stockNumber" ? tempValues.stockNumberSequentialCounter : settings?.stockNumberSequentialCounter  || 101441}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* New Vehicle Stock Number Card */}
+          {/* {renderStockNumberCard('new')}   */}
 
           {/* Users Section - Full Width */}
-          <Card className="mt-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+          <Card className="mt-8 mb-8 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 shadow-lg bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
               <div>
                 <CardTitle className="text-xl font-bold text-gray-900">Users</CardTitle>
@@ -566,22 +365,22 @@ export default function Settings() {
                         <Select
                           onValueChange={(val) => {
                             const newRoles = user.roles?.includes(val)
-                              ? user.roles.filter((r) => r !== val)
+                              ? user.roles.filter((r: any) => r !== val)
                               : [...(user.roles || []), val];
                             handleItemChange("users", index, newRoles, "roles");
                           }}
                         >
-                         <SelectTrigger className="flex-1">
-    {user.roles?.length ? (
-      <span>
-        {user.roles
-          .map((r: any) => rolesList.find((rl) => rl.id === r)?.name)
-          .join(", ")}
-      </span>
-    ) : (
-      <span className="text-gray-400">Select Roles</span>
-    )}
-  </SelectTrigger>
+                          <SelectTrigger className="flex-1">
+                            {user.roles?.length ? (
+                              <span>
+                                {user.roles
+                                  .map((r: any) => rolesList.find((rl) => rl.id === r)?.name)
+                                  .join(", ")}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">Select Roles</span>
+                            )}
+                          </SelectTrigger>
                           <SelectContent>
                             {rolesList.map((role) => (
                               <SelectItem key={role.id} value={role.id}>
@@ -643,38 +442,49 @@ export default function Settings() {
                   </div>
                 </div>
               ) : (
-                // View Mode
-                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {settings?.users?.map((user: UserOptionType, index: number) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
-                      data-testid={`user-item-${index}`}
-                    >
-                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
-                        {user.code}
-                      </span>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {user.name}
+                <>
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {settings?.users?.map((user: UserOptionType, index: number) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
+                        data-testid={`user-item-${index}`}
+                      >
+                        <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
+                          {user.code}
                         </span>
-                        <span className="text-xs text-gray-600">
-                          {user.roles?.map((r) => rolesList.find((rl) => rl.id === r)?.name).join(", ")}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {user.name}
+                          </span>
+                          <span className="text-xs text-gray-600">
+                            {user.roles?.map((r) => rolesList.find((rl) => rl.id === r)?.name).join(", ")}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                  <div className="pt-3 border-t border-gray-100 mt-8">
+                    <CsvUpload
+                      type="users"
+                      onSuccess={() =>
+                        queryClient.invalidateQueries({
+                          queryKey: ["/api/settings"],
+                        })
+                      }
+                    />
+                  </div>
+                </>
               )}
             </CardContent>
           </Card>
 
 
           <div className="grid gap-8 lg:grid-cols-2">
-          
+
 
             {/* Sources Section */}
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 shadow-lg bg-white/70 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-900">Sources</CardTitle>
@@ -733,25 +543,38 @@ export default function Settings() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    {settings.sources.map((source, index) => (
-                      <span
-                        key={index}
-                        className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getSourceColor(source)}`}
-                        data-testid={`source-badge-${index}`}
-                      >
-                        {source}
-                      </span>
-                    ))}
-                  </div>
+                  <>
+                    <div className="flex flex-wrap gap-3 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      {settings.sources.map((source, index) => (
+                        <span
+                          key={index}
+                          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getSourceColor(source)}`}
+                          data-testid={`source-badge-${index}`}
+                        >
+                          {source}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="pt-3 border-t border-gray-100 mt-8">
+                      <CsvUpload
+                        type="sources"
+                        onSuccess={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: ["/api/settings"],
+                          })
+                        }
+                      />
+                    </div>
+                  </>
                 )}
+
               </CardContent>
             </Card>
 
-           
+
 
             {/* Status Section */}
-            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
+            <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 shadow-lg bg-white/70 backdrop-blur-sm">
               <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
                 <div>
                   <CardTitle className="text-xl font-bold text-gray-900">Status</CardTitle>
@@ -810,109 +633,136 @@ export default function Settings() {
                     </div>
                   </div>
                 ) : (
-                  <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <div className="flex gap-3 min-w-max">
-                      {settings.status.map((status, index) => (
-                        <span
-                          key={index}
-                          className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getStatusColor(status)}`}
-                          data-testid={`status-badge-${index}`}
-                        >
-                          {status}
-                        </span>
-                      ))}
+                  <>
+                    <div className="flex overflow-x-auto gap-3 pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      <div className="flex gap-3 min-w-max">
+                        {settings.status.map((status, index) => (
+                          <span
+                            key={index}
+                            className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border transition-all duration-200 cursor-default shadow-sm ${getStatusColor(status)}`}
+                            data-testid={`status-badge-${index}`}
+                          >
+                            {status}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                    <div className="pt-3 border-t border-gray-100 mt-8">
+                      <CsvUpload
+                        type="status"
+                        onSuccess={() =>
+                          queryClient.invalidateQueries({
+                            queryKey: ["/api/settings"],
+                          })
+                        }
+                      />
+                    </div>
+                  </>
                 )}
+
               </CardContent>
             </Card>
           </div>
 
           {/* Colors Section - Full Width */}
-          <Card className="mt-8 mb-32 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 shadow-lg bg-white/70 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
-            <div>
-              <CardTitle className="text-xl font-bold text-gray-900">Colors</CardTitle>
-              <CardDescription className="text-gray-600 mt-1">Available vehicle colors with codes</CardDescription>
-            </div>
-            {editMode !== "colors" && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => handleEdit("colors")}
-                className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
-                data-testid="edit-colors-button"
-              >
-                <Pencil className="w-4 h-4 text-gray-600" />
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="p-8 pt-0">
-            {editMode === "colors" ? (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  {(tempValues.colors || []).map((color: ColorOptionType, index: number) => (
-                    <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl bg-gray-50/30">
-                      <Input
-                        placeholder="Code"
-                        value={color.code}
-                        onChange={(e) => handleItemChange("colors", index, e.target.value, "code")}
-                        className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                        data-testid={`color-code-input-${index}`}
-                      />
-                      <Input
-                        placeholder="Color Name"
-                        value={color.name}
-                        onChange={(e) => handleItemChange("colors", index, e.target.value, "name")}
-                        className="flex-1 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
-                        data-testid={`color-name-input-${index}`}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveItem("colors", index)}
-                        className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
-                        data-testid={`remove-color-${index}`}
-                      >
-                        <X className="w-4 h-4 text-red-500" />
-                      </Button>
+          <Card className="mt-8 mb-32 group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-2 shadow-lg bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-start justify-between p-8 pb-6">
+              <div>
+                <CardTitle className="text-xl font-bold text-gray-900">Colors</CardTitle>
+                <CardDescription className="text-gray-600 mt-1">Available vehicle colors with codes</CardDescription>
+              </div>
+              {editMode !== "colors" && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEdit("colors")}
+                  className="h-10 w-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors p-0"
+                  data-testid="edit-colors-button"
+                >
+                  <Pencil className="w-4 h-4 text-gray-600" />
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="p-8 pt-0">
+              {editMode === "colors" ? (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    {(tempValues.colors || []).map((color: ColorOptionType, index: number) => (
+                      <div key={index} className="flex items-center gap-4 p-4 border border-gray-200 rounded-xl bg-gray-50/30">
+                        <Input
+                          placeholder="Code"
+                          value={color.code}
+                          onChange={(e) => handleItemChange("colors", index, e.target.value, "code")}
+                          className="w-24 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`color-code-input-${index}`}
+                        />
+                        <Input
+                          placeholder="Color Name"
+                          value={color.name}
+                          onChange={(e) => handleItemChange("colors", index, e.target.value, "name")}
+                          className="flex-1 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                          data-testid={`color-name-input-${index}`}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveItem("colors", index)}
+                          className="h-8 w-8 p-0 border-red-200 hover:bg-red-50 hover:border-red-300"
+                          data-testid={`remove-color-${index}`}
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" onClick={() => handleAddItem("colors")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-color-button">
+                      <Plus className="w-4 h-4 mr-2 text-blue-600" />
+                      Add Color
+                    </Button>
+                  </div>
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button onClick={() => handleSave("colors")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-colors-button">
+                      <Save className="w-4 h-4 mr-2" />
+                      Save
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {settings.colors.map((color, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
+                      data-testid={`color-item-${index}`}
+                    >
+                      <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
+                        {color.code}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 truncate">{color.name}</span>
                     </div>
                   ))}
+
                 </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={() => handleAddItem("colors")} className="border-blue-200 hover:bg-blue-50 hover:border-blue-300" data-testid="add-color-button">
-                    <Plus className="w-4 h-4 mr-2 text-blue-600" />
-                    Add Color
-                  </Button>
-                </div>
-                <div className="flex gap-3 pt-4 border-t border-gray-200">
-                  <Button onClick={() => handleSave("colors")} disabled={updateMutation.isPending} className="bg-blue-600 hover:bg-blue-700" data-testid="save-colors-button">
-                    <Save className="w-4 h-4 mr-2" />
-                    Save
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel} className="border-gray-200 hover:bg-gray-50">
-                    Cancel
-                  </Button>
-                </div>
+                   <div className="pt-3 border-t border-gray-100 mt-8">
+                <CsvUpload
+                  type="colors"
+                  onSuccess={() =>
+                    queryClient.invalidateQueries({
+                      queryKey: ["/api/settings"],
+                    })
+                  }
+                />
               </div>
-            ) : (
-              <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {settings.colors.map((color, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center gap-3 p-4 bg-gray-50/50 border border-gray-200 rounded-xl hover:bg-gray-50/80 transition-all duration-200 shadow-sm"
-                    data-testid={`color-item-${index}`}
-                  >
-                    <span className="inline-flex items-center justify-center w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full text-xs font-mono text-white shadow-sm">
-                      {color.code}
-                    </span>
-                    <span className="text-sm font-medium text-gray-900 truncate">{color.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card> 
+</>
+              )}
+           
+            </CardContent>
+          </Card>
 
 
         </div>
@@ -920,3 +770,23 @@ export default function Settings() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

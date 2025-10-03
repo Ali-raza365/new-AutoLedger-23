@@ -30,12 +30,10 @@ import { env, isDevelopment } from "./config/env";
     const isReplit = process.env.REPLIT_DEV_DOMAIN || process.env.REPL_ID;
 
     // Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
-    // const host = !isDevelopment ? "localhost" : "0.0.0.0";
+    // const host = isDevelopment ? "localhost" : "0.0.0.0";
     // Always listen on 0.0.0.0 in production (Railway, Docker, etc.)
     const host = "0.0.0.0";
 
-
-    console.log({ env })
 
 
     server.listen(env.PORT, host, () => {

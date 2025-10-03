@@ -31,23 +31,44 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   const form = useForm<InsertInventory>({
     resolver: zodResolver(insertInventorySchema),
     defaultValues: {
+      // Basic Vehicle Information
       stockNumber: "",
       vin: "",
       year: new Date().getFullYear(),
       make: "",
       model: "",
       series: "",
+      source: "",
+      seriesDetail: "",
       color: "",
+      interiorDescription: "",
+      exitStrategy: "",
       certified: false,
       body: "",
       price: 0,
-      bookValue: 0,
-      cost: 0,
-      markup: 0,
+      pendingPrice: null,
+      bookValue: null,
+      cost: null,
+      applicableCost: null,
+      originalCost: null,
+      costDifference: null,
+      markup: null,
+      water: null,
+      applicableWater: null,
+      overall: null,
+      marketDaysSupplyLikeMine: null,
+      costToMarketPct: null,
+      applicableCostToMarketPct: null,
+      marketPct: null,
       odometer: 0,
-      age: 0,
-      specificSource: "",
-      newUsed: "",
+      age: null,
+      priceRank: "",
+      vRank: "",
+      priceRankBucket: "",
+      vRankBucket: "",
+      currentStatus: "",
+      statusDate: new Date(), // auto-fill with today’s date
+      dateLogged: new Date(), // auto-fill when logged
     },
   });
 
@@ -76,7 +97,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
     console.log(data)
 
     createMutation.mutate(
-      { ...data, dateLogged: new Date() },
+      { ...data, dateLogged: new Date(), currentStatus: "Available", },
       {
         onSuccess: () => {
           refetch(); // 🔄 refetch settings after submit
@@ -88,7 +109,8 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   // Watch price and cost to auto-calculate markup
   const watchPrice = form.watch("price");
   const watchCost = form.watch("cost");
-  const watchSource = form.watch("specificSource");
+  const watchSource = form.watch("source");
+  const watchCondition = form.watch("newUsed");
 
   // Auto-calculate markup when price or cost changes
   useEffect(() => {
@@ -101,45 +123,59 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
   }, [watchPrice, watchCost, form]);
 
   useEffect(() => {
-    if (settings && settings.stockNumberPrefixRule && settings.stockNumberSuffixRule) {
-      // Generate stock number based on rules
-      const prefixRule = settings.stockNumberPrefixRule;
-      const suffixRule = settings.stockNumberSuffixRule;
-      const counter = settings.stockNumberSequentialCounter || 0;
+    if (!settings) return;
 
-      let prefix = "";
-      let suffix = "";
+    // Decide which rules to use: generic, used, or new
+    let prefixRule = settings.stockNumberPrefixRule;
+    let suffixRule = settings.stockNumberSuffixRule;
+    let counter = settings.stockNumberSequentialCounter || 0;
 
-      // Determine prefix
-      if (prefixRule.type === "none") {
-        prefix = "";
-      } else if (prefixRule.type === "source") {
-        prefix = watchSource ? watchSource.substring(0, 3).toUpperCase() : "";
-      } else if (prefixRule.type === "buyer") {
-        prefix = "BUY"; // Placeholder, as buyer selection is not in this form
-      } else if (prefixRule.type === "custom" && prefixRule.customValue) {
-        prefix = prefixRule.customValue.toUpperCase();
-      }
-
-      // Determine suffix
-      if (suffixRule.type === "none") {
-        suffix = "";
-      } else if (suffixRule.type === "source") {
-        suffix = watchSource ? watchSource.substring(0, 3).toUpperCase() : "";
-      } else if (suffixRule.type === "buyer") {
-        suffix = "BUY"; // Placeholder
-      } else if (suffixRule.type === "custom" && suffixRule.customValue) {
-        suffix = suffixRule.customValue.toUpperCase();
-      }
-
-      // Format counter with leading zeros
-      const counterStr = String(counter + 1).padStart(4, "0");
-
-      // Combine to form stock number
-      const stockNumber = `${prefix}${counterStr}${suffix}`;
-      form.setValue("stockNumber", stockNumber);
+    if (watchCondition === "Used") {
+      prefixRule = settings.usedStockNumberPrefixRule || prefixRule;
+      suffixRule = settings.usedStockNumberSuffixRule || suffixRule;
+      counter = settings.usedStockNumberSequentialCounter ?? counter;
+    } else if (watchCondition === "New") {
+      prefixRule = settings.newStockNumberPrefixRule || prefixRule;
+      suffixRule = settings.newStockNumberSuffixRule || suffixRule;
+      counter = settings.newStockNumberSequentialCounter ?? counter;
     }
-  }, [settings, watchSource, form]);
+
+    if (!prefixRule || !suffixRule) return;
+
+    let prefix = "";
+    let suffix = "";
+
+    // Determine prefix
+    if (prefixRule.type === "none") {
+      prefix = "";
+    } else if (prefixRule.type === "source") {
+      prefix = watchSource ? watchSource.substring(0, 1).toUpperCase() : "";
+    } else if (prefixRule.type === "buyer") {
+      prefix = "BUY"; // Replace with actual buyer code if available
+    } else if (prefixRule.type === "custom" && prefixRule.customValue) {
+      prefix = prefixRule.customValue.toUpperCase();
+    }
+
+    // Determine suffix
+    if (suffixRule.type === "none") {
+      suffix = "";
+    } else if (suffixRule.type === "source") {
+      suffix = watchSource ? watchSource.substring(0, 1).toUpperCase() : "";
+    } else if (suffixRule.type === "buyer") {
+      suffix = "BUY"; // Replace with actual buyer code if available
+    } else if (suffixRule.type === "custom" && suffixRule.customValue) {
+      suffix = suffixRule.customValue.toUpperCase();
+    }
+
+    // Format counter with leading zeros
+    const counterStr = String(counter + 1).padStart(4, "0");
+
+    // Combine to form stock number
+    const stockNumber = `${prefix}${counterStr}${suffix}`;
+    form.setValue("stockNumber", stockNumber);
+
+  }, [settings, watchSource, watchCondition, form]);
+
 
   // VIN Lookup function
   const handleVinLookup = async () => {
@@ -169,8 +205,10 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
       if (response.vehicleData.model) form.setValue("model", response.vehicleData.model);
       if (response.vehicleData.year) form.setValue("year", response.vehicleData.year);
       if (response.vehicleData.series) form.setValue("series", response.vehicleData.series || response.vehicleData.trim);
-      if (response.vehicleData.trim) form.setValue("trim", response.vehicleData.trim);
       if (response.vehicleData.vehicleType) form.setValue("body", response.vehicleData.vehicleType);
+      if (response.vehicleData.price) form.setValue("price", response.vehicleData.price);
+      if (response.vehicleData.seriesDetail) form.setValue("seriesDetail", response.vehicleData.seriesDetail);
+
       // // Map NHTSA bodyClass to our body type options
       if (response.vehicleData.bodyClass) {
         const bodyClass = response.vehicleData.bodyClass.toLowerCase();
@@ -210,7 +248,6 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
     }
   }, [watchVin]);
 
-  console.log(settings)
 
   return (
     <div className="space-y-6">
@@ -235,6 +272,30 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                       className="bg-gray-100"
                       data-testid="input-stock-number" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+                 {/* Source */}
+            <FormField
+              control={form.control}
+              name="source"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Source</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-source-style" >
+                        <SelectValue placeholder="Select source" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {settings?.sources?.map((source: string) => (
+                        <SelectItem key={source} value={source}>{source + ` (${source.substring(0, 1).toUpperCase()})`}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -307,6 +368,9 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                 </FormItem>
               )}
             />
+
+
+       
 
             {/* Year */}
             <FormField
@@ -393,7 +457,27 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               )}
             />
 
-                 {/* Color */}
+            {/* Series details */}
+            <FormField
+              control={form.control}
+              name="seriesDetail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>series Details</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={vinLookupResult?.seriesDetail ? "Auto-filled from VIN" : "Enter series details"}
+                      {...field}
+                      data-testid="input-series"
+                      className={vinLookupResult?.seriesDetail ? "bg-green-50 border-green-300" : ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Color */}
             <FormField
               control={form.control}
               name="color"
@@ -407,7 +491,7 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {settings?.colors?.map((color:any) => (
+                      {settings?.colors?.map((color: any) => (
                         <SelectItem key={color.code} value={color.name}>
                           {color.name} ({color.code})
                         </SelectItem>
@@ -442,6 +526,8 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               )}
             />
 
+
+
             {/* Body Style */}
             <FormField
               control={form.control}
@@ -470,29 +556,47 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
               )}
             />
 
-            {/* Body Style */}
+
+
+            {/* Interior Description */}
             <FormField
               control={form.control}
-              name="specificSource"
+              name="interiorDescription"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Source</FormLabel>
+                  <FormLabel>Interior Description</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Leather, Cloth, etc." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Exit Strategy */}
+            <FormField
+              control={form.control}
+              name="exitStrategy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Exit Strategy</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger data-testid="select-source-style" >
-                        <SelectValue placeholder="Select source" />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select strategy" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {settings?.sources?.map((source) => (
-                        <SelectItem key={source} value={source}>{source}</SelectItem>
-                      ))}
+                      <SelectItem value="Retail">Retail</SelectItem>
+                      <SelectItem value="Wholesale">Wholesale</SelectItem>
+                      <SelectItem value="Auction">Auction</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
 
             {/* Price */}
             <FormField
@@ -562,6 +666,311 @@ export default function InventoryForm({ onSuccess }: InventoryFormProps) {
                 </FormItem>
               )}
             />
+
+            {/* Pending Price */}
+            <FormField
+              control={form.control}
+              name="pendingPrice"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pending Price ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter pending price"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Applicable Cost */}
+            <FormField
+              control={form.control}
+              name="applicableCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Applicable Cost ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter applicable cost"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Original Cost */}
+            <FormField
+              control={form.control}
+              name="originalCost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Original Cost ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter original cost"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Cost Difference */}
+            <FormField
+              control={form.control}
+              name="costDifference"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cost Difference ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter cost difference"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Water */}
+            <FormField
+              control={form.control}
+              name="water"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Water ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter water"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Applicable Water */}
+            <FormField
+              control={form.control}
+              name="applicableWater"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Applicable Water ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter applicable water"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Overall */}
+            <FormField
+              control={form.control}
+              name="overall"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Overall</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Overall score"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Market Days Supply Like Mine */}
+            <FormField
+              control={form.control}
+              name="marketDaysSupplyLikeMine"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Market Days Supply Like Mine</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter days"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* % Cost To Market */}
+            <FormField
+              control={form.control}
+              name="costToMarketPct"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>% Cost To Market</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter %"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Applicable % Cost To Market */}
+            <FormField
+              control={form.control}
+              name="applicableCostToMarketPct"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Applicable % Cost To Market</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter %"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* % Mkt */}
+            <FormField
+              control={form.control}
+              name="marketPct"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>% Mkt</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Enter %"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Price Rank */}
+            <FormField
+              control={form.control}
+              name="priceRank"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Rank</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Price Rank" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* vRank */}
+            <FormField
+              control={form.control}
+              name="vRank"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>vRank</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter vRank" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Price Rank Bucket */}
+            <FormField
+              control={form.control}
+              name="priceRankBucket"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price Rank Bucket</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter Price Rank Bucket" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* vRank Bucket */}
+            <FormField
+              control={form.control}
+              name="vRankBucket"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>vRank Bucket</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter vRank Bucket" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+
+
+
 
             {/* Markup (calculated) */}
             <FormField

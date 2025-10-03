@@ -41,7 +41,7 @@ export class SeedService {
     }
   }
 
- static async seedSettings(): Promise<void> {
+  static async seedSettings(): Promise<void> {
     try {
       // Check if settings already exist
       const existingSettings = await Settings.findOne();
@@ -132,6 +132,25 @@ export class SeedService {
           customValue: ""
         },
         stockNumberSequentialCounter: 1000,
+        usedStockNumberSequentialCounter: 2000,
+        newStockNumberSequentialCounter: 3000,
+        usedStockNumberPrefixRule: {
+          type: "source",
+          customValue: ""
+        },
+        usedStockNumberSuffixRule: {
+          type: "source",
+          customValue: ""
+        },
+        newStockNumberPrefixRule: {
+          type: "none",
+          customValue: ""
+        },
+        newStockNumberSuffixRule: {
+          type: "source",
+          customValue: ""
+        },
+
       };
 
       await Settings.create(defaultSettings);
@@ -155,39 +174,221 @@ export class SeedService {
       // Add sample inventory
       const sampleInventory = [
         {
-          stockNumber: "A2024001",
-          vin: "1HGBH41JXMN109186",
+          id: "inv-001",
+          stockNumber: "102344J",
+          dateLogged: new Date("2024-02-01"),
+          vin: "2LMPJ6K95PBL05254",
           year: 2023,
-          make: "Honda",
-          model: "Accord",
-          series: "LX",
-          color: "Silver Metallic",
-          certified: true,
-          body: "Sedan",
-          price: "28450",
-          bookValue: "26500",
-          cost: "24000",
-          markup: "4450",
-          odometer: 15420,
-          age: 45,
+          make: "Lincoln",
+          model: "Nautilus",
+          series: "Reserve",
+          source: "Kelley Blue Book",
+          seriesDetail: null,
+          interiorDescription: "Ebony",
+          exitStrategy: "R",
+          color: "White Metallic",
+          certified: false,
+          body: "4D Sport Utility",
+          odometer: 21391,
+          newUsed: "Used",
+
+          // Financial Analysis
+          price: 34000,
+          pendingPrice: null,
+          bookValue: 34812,
+          cost: 35958,
+          applicableCost: 35958,
+          originalCost: 34583,
+          costDifference: 1375,
+          markup: -1958,
+          water: 1146,
+          applicableWater: 1146,
+
+          // Market / Analytics
+          overall: 48,
+          marketDaysSupplyLikeMine: 63,
+          costToMarketPct: 104,
+          applicableCostToMarketPct: 96,
+          marketPct: 91,
+
+          // Ranking
+          priceRank: "5 of 10",
+          vRank: "2 of 10",
+          priceRankBucket: "Yellow",
+          vRankBucket: "Green",
+
+          // Status
+          currentStatus: "Available",
+          statusDate: new Date("2024-02-05"),
+
+          // Legacy
+          age: 66,
+
+          // Metadata
+          createdAt: new Date(),
         },
         {
-          stockNumber: "B2024002",
-          vin: "3GNKBKRS5NS123456",
-          year: 2022,
-          make: "Chevrolet",
-          model: "Equinox",
-          series: "LS",
-          color: "Pearl White",
+          id: "inv-002",
+          stockNumber: "102468A",
+          dateLogged: new Date("2024-02-02"),
+          vin: "1C6SRFUP2SN585444",
+          source: "Kelley Blue Book",
+          year: 2025,
+          make: "Ram",
+          model: "1500",
+          series: "RHO",
+          seriesDetail: null,
+          interiorDescription: "Black Leather",
+          exitStrategy: "R",
+          color: "Bright White Clearcoat",
           certified: false,
-          body: "SUV",
-          price: "32995",
-          bookValue: "30200",
-          cost: "28500",
-          markup: "4495",
-          odometer: 28750,
-          age: 32,
-        }
+          body: "4D Crew Cab",
+          odometer: 2279,
+          newUsed: "New",
+
+          // Financial Analysis
+          price: 80500,
+          pendingPrice: null,
+          bookValue: 76588,
+          cost: 762,
+          applicableCost: null, // (Excluded)
+          originalCost: 762,
+          costDifference: 0,
+          markup: 79738,
+          water: -75826,
+          applicableWater: null, // (Excluded)
+
+          // Market / Analytics
+          overall: 107,
+          marketDaysSupplyLikeMine: 117,
+          costToMarketPct: 1,
+          applicableCostToMarketPct: null, // (Excluded)
+          marketPct: 103,
+
+          // Ranking
+          priceRank: "8 of 11",
+          vRank: "8 of 11",
+          priceRankBucket: "Yellow",
+          vRankBucket: "Yellow",
+
+          // Status
+          currentStatus: "Available",
+          statusDate: new Date("2024-02-06"),
+
+          // Legacy
+          age: 25,
+
+          // Metadata
+          createdAt: new Date(),
+        },
+        {
+          id: "inv-003",
+          stockNumber: "102500P",
+          dateLogged: new Date("2024-02-03"),
+          vin: "3KPF24AD9PE613913",
+          source: "Kelley Blue Book",
+          year: 2023,
+          make: "Kia",
+          model: "Forte",
+          series: "LXS",
+          seriesDetail: null,
+          interiorDescription: "Black Cloth",
+          exitStrategy: "R",
+          color: "Gravity Gray",
+          certified: false,
+          body: "4D Sedan",
+          odometer: 62997,
+          newUsed: "Used",
+
+          // Financial Analysis
+          price: 17000,
+          pendingPrice: null,
+          bookValue: 15451,
+          cost: 17463,
+          applicableCost: 17463,
+          originalCost: 16568,
+          costDifference: 895,
+          markup: -463,
+          water: 2012,
+          applicableWater: 2012,
+
+          // Market / Analytics
+          overall: 69,
+          marketDaysSupplyLikeMine: 69,
+          costToMarketPct: 100,
+          applicableCostToMarketPct: 99,
+          marketPct: 101,
+
+          // Ranking
+          priceRank: "20 of 42",
+          vRank: "25 of 42",
+          priceRankBucket: "Yellow",
+          vRankBucket: "Yellow",
+
+          // Status
+          currentStatus: "Available",
+          statusDate: new Date("2024-02-07"),
+
+          // Legacy
+          age: 17,
+
+          // Metadata
+          createdAt: new Date(),
+        },
+        {
+          id: "inv-004",
+          stockNumber: "102480A",
+          dateLogged: new Date("2024-02-04"),
+          vin: "WDCTG4EB6LU028662",
+          year: 2020,
+          make: "Mercedes-Benz",
+          model: "GLA",
+          series: "GLA 250",
+          seriesDetail: null,
+          interiorDescription: "Leatherette",
+          source: "Trade-In",
+          exitStrategy: "R",
+          color: "Polar White",
+          certified: false,
+          body: "4D Sport Utility",
+          odometer: 51704,
+          newUsed: "Used",
+
+          // Financial Analysis
+          price: 20000,
+          pendingPrice: null,
+          bookValue: 17011,
+          cost: 18387,
+          applicableCost: 18387,
+          originalCost: 19083,
+          costDifference: -696,
+          markup: 1613,
+          water: 1376,
+          applicableWater: 1376,
+
+          // Market / Analytics
+          overall: 43,
+          marketDaysSupplyLikeMine: 43,
+          costToMarketPct: 96,
+          applicableCostToMarketPct: 96,
+          marketPct: 104,
+
+          // Ranking
+          priceRank: "10 of 15",
+          vRank: "12 of 15",
+          priceRankBucket: "Yellow",
+          vRankBucket: "Red",
+
+          // Status
+          currentStatus: "Available",
+          statusDate: new Date("2024-02-08"),
+
+          // Legacy
+          age: 23,
+
+          // Metadata
+          createdAt: new Date(),
+        },
       ];
 
       await Inventory.insertMany(sampleInventory);

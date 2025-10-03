@@ -1,42 +1,63 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Download, Search } from "lucide-react";
+import { Plus, Download, Search, Upload } from "lucide-react";
 import type { Inventory } from "@shared/schema";
 import InventoryForm from "@/components/inventory-form";
 import InventoryTable from "@/components/inventory-table";
 import ColumnVisibilityDropdown, { type ColumnDefinition } from "@/components/column-visibility-dropdown";
-import { buildCsv, downloadCsv, generateExportFilename, formatCsvDate } from "@/lib/csvUtils";
+import { buildCsv, downloadCsv, generateExportFilename, formatCsvDate, parseCsv, parseFile } from "@/lib/csvUtils";
 import { toast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const INVENTORY_COLUMNS: ColumnDefinition[] = [
   { key: "stockNumber", label: "Stock #", defaultVisible: true },
-  { key: "dateLogged", label: "Date Logged", defaultVisible: false },
   { key: "vin", label: "VIN", defaultVisible: true },
-  { key: "newUsed", label: "Vehicle Type", defaultVisible: false },
-  { key: "specificSource", label: "Specific Source", defaultVisible: false },
-  
   { key: "year", label: "Year", defaultVisible: true },
   { key: "make", label: "Make", defaultVisible: true },
   { key: "model", label: "Model", defaultVisible: true },
   { key: "series", label: "Series", defaultVisible: false },
-  { key: "vehicle", label: "Vehicle", defaultVisible: true }, // composed field
+  { key: "seriesDetail", label: "Series Detail", defaultVisible: false },
   { key: "color", label: "Color", defaultVisible: true },
+  { key: "interiorDescription", label: "Interior Description", defaultVisible: false },
+  { key: "exitStrategy", label: "Exit Strategy", defaultVisible: false },
   { key: "certified", label: "Certified", defaultVisible: false },
+  { key: "newUsed", label: "Vehicle Type", defaultVisible: false },
   { key: "body", label: "Body", defaultVisible: false },
-  { key: "odometer", label: "Odometer", defaultVisible: true },
   { key: "price", label: "Price", defaultVisible: true },
+  { key: "pendingPrice", label: "Pending Price", defaultVisible: false },
   { key: "bookValue", label: "Book Value", defaultVisible: false },
   { key: "cost", label: "Cost", defaultVisible: false },
+  { key: "applicableCost", label: "Applicable Cost", defaultVisible: false },
+  { key: "originalCost", label: "Original Cost", defaultVisible: false },
+  { key: "costDifference", label: "Cost Difference", defaultVisible: false },
   { key: "markup", label: "Markup", defaultVisible: false },
-  { key: "hqAppraisalSuggested", label: "HQ Appraisal Suggested", defaultVisible: false },
+  { key: "water", label: "Water", defaultVisible: false },
+  { key: "applicableWater", label: "Applicable Water", defaultVisible: false },
+  { key: "overall", label: "Overall", defaultVisible: false },
+  { key: "marketDaysSupplyLikeMine", label: "Market Days Supply Like Mine", defaultVisible: false },
+  { key: "costToMarketPct", label: "% Cost To Market", defaultVisible: false },
+  { key: "applicableCostToMarketPct", label: "Applicable % Cost To Market", defaultVisible: false },
+  { key: "marketPct", label: "% Mkt", defaultVisible: false },
+  { key: "odometer", label: "Odometer", defaultVisible: true },
   { key: "age", label: "Age", defaultVisible: true },
+  { key: "priceRank", label: "Price Rank", defaultVisible: false },
+  { key: "vRank", label: "vRank", defaultVisible: false },
+  { key: "priceRankBucket", label: "Price Rank Bucket", defaultVisible: false },
+  { key: "vRankBucket", label: "vRank Bucket", defaultVisible: false },
+  { key: "currentStatus", label: "Current Status", defaultVisible: false },
+  { key: "statusDate", label: "Status Date", defaultVisible: false },
+  // Metadata
+  // { key: "dateLogged", label: "Date Logged", defaultVisible: false },
+  { key: "createdAt", label: "Created At", defaultVisible: false },
   { key: "actions", label: "Actions", defaultVisible: true },
 
 ];
+
+
 
 
 export default function Inventory() {
@@ -44,6 +65,10 @@ export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMake, setSelectedMake] = useState("");
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedVehicleType, setSelectedVehicleType] = useState("all");
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Column visibility state
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -54,6 +79,7 @@ export default function Inventory() {
     return initial;
   });
 
+  console.log(visibleColumns)
   const handleVisibilityChange = (key: string, visible: boolean) => {
     setVisibleColumns(prev => ({ ...prev, [key]: visible }));
   };
@@ -64,6 +90,14 @@ export default function Inventory() {
       hidden[col.key] = false;
     });
     setVisibleColumns(hidden);
+  };
+
+  const handleShowAll = () => {
+    const shown: Record<string, boolean> = {};
+    INVENTORY_COLUMNS.forEach(col => {
+      shown[col.key] = true;
+    });
+    setVisibleColumns(shown);
   };
 
   const handleResetToDefault = () => {
@@ -79,22 +113,122 @@ export default function Inventory() {
   });
 
   const filteredInventory = inventory.filter((item) => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch =
+      !searchQuery ||
       item.vin.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.stockNumber.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesMake = !selectedMake || selectedMake === "all" || item.make === selectedMake;
-    
-    return matchesSearch && matchesMake;
+
+    const matchesMake =
+      !selectedMake || selectedMake === "all" || item.make === selectedMake;
+
+    const matchesVehicleType =
+      !selectedVehicleType || selectedVehicleType === "all" || item.newUsed === selectedVehicleType;
+
+    return matchesSearch && matchesMake && matchesVehicleType;
   });
 
   const uniqueMakes = Array.from(new Set(inventory.map(item => item.make))).sort();
 
+  // Unique vehicle types ("New", "Used")
+  const uniqueVehicleTypes = Array.from(
+    new Set(["New", "Used"])
+  );
+
+
+
+  const importMutation = useMutation({
+    mutationFn: (items: any[]) =>
+      apiRequest("/api/inventory/bulk-import", {
+        method: "POST",
+        body: { items },
+        headers: { "Content-Type": "application/json" }
+      }),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/inventory"] });
+
+      // ✅ Success summary toast
+      toast({
+        title: "Import Completed",
+        description: `Successfully imported ${data.successCount} items. ${data.failedCount} failed.`,
+        variant: data.failedCount > 0 ? "default" : "default",
+      });
+
+      // ✅ If failed, show details
+      if (data.failedCount > 0) {
+        console.error("Failed imports:", data);
+
+        // Grab first few errors for preview
+        const errorPreview = data.failed
+          .slice(0, 3) // only show first 3 errors in toast
+          .map((f: any) => `Row ${f.row}: ${f.error}`)
+          .join("\n");
+
+        setTimeout(() => {
+          toast({
+            title: "Import Errors",
+            description:
+              errorPreview +
+              (data.failedCount > 3
+                ? `\n...and ${data.failedCount - 3} more`
+                : ""),
+            variant: "default",
+          });
+        }, 1000);
+      }
+    },
+    onError: (error: Error) => {
+      console.log({...error})
+      toast({
+        title: "Import Failed",
+        description: error.message || "An error occurred while importing data.",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsImporting(false);
+    },
+  });
+
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsImporting(true);
+
+      const parsedData = await parseFile(file);
+
+      if (parsedData.length === 0) {
+        toast({
+          title: "Empty File",
+          description: "The file is empty or invalid.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      importMutation.mutate(parsedData);
+    } catch (err) {
+      toast({
+        title: "Parse Error",
+        description: "Failed to parse the file. Please check format.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+
 
   // Export inventory data to CSV
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     if (filteredInventory.length === 0) {
       toast({
         title: "No Data to Export",
@@ -107,35 +241,40 @@ export default function Inventory() {
     setIsExporting(true);
 
     try {
-       const headers = INVENTORY_COLUMNS.map(column => column.label);
+      // Only include columns that are visible
+      const visibleCols = INVENTORY_COLUMNS.filter(col => visibleColumns[col.key]);
 
+      // Build headers only from visible columns
+      const headers = visibleCols.map(column => column.label);
 
-     // Dynamically map data based on INVENTORY_COLUMNS keys
-    const csvData = filteredInventory.map((item:any) => {
-      return INVENTORY_COLUMNS.map(column => {
-        const key = column.key;
-        let value = item[key];
+      // Dynamically map data based on visible column keys
+      const csvData = filteredInventory.map((item: any) => {
+        return visibleCols.map(column => {
+          const key = column.key;
+          let value = item[key];
 
-        // Handle specific composed fields or transformations
-        if (key === "vehicle") {
-          value = `${item.year} ${item.make} ${item.model}`;
-        } else if (key === "certified") {
-          value = item.certified ? "Yes" : "No";
-        } else if (key === "dateLogged") {
-          value = formatCsvDate(item.createdAt);
-        } else if (value === null || value === undefined) {
-          value = "";
-        }
+          // Handle special formatting
+          if (key === "vehicle") {
+            value = `${item.year} ${item.make} ${item.model}`;
+          } else if (key === "certified") {
+            value = item.certified ? "Yes" : "No";
+          } else if (key === "dateLogged") {
+            value = formatCsvDate(item.dateLogged);
+          } else if (key === "statusDate" || key === "createdAt") {
+            value = item[key] ? new Date(item[key]).toLocaleDateString() : "";
+          } else if (value === null || value === undefined) {
+            value = "";
+          }
 
-        return value;
+          return value;
+        });
       });
-    });
 
       const csvContent = buildCsv(headers, csvData);
       const filename = generateExportFilename("inventory");
-      
-      downloadCsv(csvContent, filename);
-      
+
+      await downloadCsv(csvContent, filename);
+
       toast({
         title: "Export Successful",
         description: `Exported ${filteredInventory.length} inventory records to ${filename}`,
@@ -150,6 +289,7 @@ export default function Inventory() {
       setIsExporting(false);
     }
   };
+
 
   return (
     <>
@@ -183,6 +323,24 @@ export default function Inventory() {
                     <InventoryForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.xls,.xlsx"
+                  onChange={handleFileUpload}
+                  style={{ display: "none" }}
+                  data-testid="input-import-file"
+                />
+
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isImporting}
+                  data-testid="button-import"
+                >
+                  <Upload className="mr-2" size={16} />
+                  {isImporting ? "Importing..." : "Import"}
+                </Button>
                 <Button variant="outline" onClick={exportToCSV} disabled={isExporting} data-testid="button-export">
                   <Download className="mr-2" size={16} />
                   Export
@@ -193,7 +351,7 @@ export default function Inventory() {
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="Search by VIN, Make, Model..."
+                  placeholder="Search by Stock, VIN, Make, Model..."
                   className="pl-10 w-80"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -201,6 +359,20 @@ export default function Inventory() {
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
               </div>
+              <Select value={selectedVehicleType} onValueChange={setSelectedVehicleType}>
+                <SelectTrigger className="w-40" data-testid="select-vehicleType-filter">
+                  <SelectValue placeholder="All Vehicle Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Vehicle Types</SelectItem>
+                  {uniqueVehicleTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={selectedMake} onValueChange={setSelectedMake}>
                 <SelectTrigger className="w-40" data-testid="select-make-filter">
                   <SelectValue placeholder="All Makes" />
@@ -217,14 +389,15 @@ export default function Inventory() {
                 visibleColumns={visibleColumns}
                 onVisibilityChange={handleVisibilityChange}
                 onHideAll={handleHideAll}
+                onShowAll={handleShowAll}
                 onResetToDefault={handleResetToDefault}
               />
             </div>
           </div>
 
           {/* Inventory Table */}
-          <InventoryTable 
-            inventory={filteredInventory} 
+          <InventoryTable
+            inventory={filteredInventory}
             isLoading={isLoading}
             visibleColumns={visibleColumns}
           />

@@ -4,26 +4,40 @@ import type { StockNumberRule } from "@shared/schema";
 export class StockNumberService {
   /**
    * Generates a new stock number based on the configured rules
-   * and atomically increments the sequential counter
+   * and atomically increments the correct sequential counter
    */
-  static async generateStockNumber(context?: {
+  static async generateStockNumber(context: {
+    condition?: "Used" | "New"; // add condition
     sourceCode?: string;
     buyerId?: string;
   }): Promise<string> {
-    // First, ensure settings exist and atomically increment the counter
+    const { condition } = context;
+
+    // Decide which counter to increment
+    const counterField =
+      condition === "Used"
+        ? "usedStockNumberSequentialCounter"
+        : condition === "New"
+        ? "newStockNumberSequentialCounter"
+        : "stockNumberSequentialCounter";
+
+    // Atomically increment the chosen counter
     const settingsUpdate = await Settings.findOneAndUpdate(
       {},
       {
-        $inc: { stockNumberSequentialCounter: 1 },
+        $inc: { [counterField]: 1 },
         $setOnInsert: {
           stockNumberPrefixRule: { type: "none" },
           stockNumberSuffixRule: { type: "none" },
-          make: [],
+          usedStockNumberPrefixRule: { type: "none" },
+          usedStockNumberSuffixRule: { type: "none" },
+          newStockNumberPrefixRule: { type: "none" },
+          newStockNumberSuffixRule: { type: "none" },
           sources: [],
           years: [],
           status: [],
-          model: [],
           colors: [],
+          buyers: [],
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -31,35 +45,38 @@ export class StockNumberService {
       { upsert: true, new: false, setDefaultsOnInsert: true }
     );
 
-
+    // Sequential number before increment → first run default fallback
     const sequentialNumber = settingsUpdate
-      ? settingsUpdate.stockNumberSequentialCounter
-      : 101441; // first run default
+      ? (settingsUpdate as any)[counterField]
+      : 1000;
 
-
-    // Fetch the current settings for rule generation
+    // Re-fetch settings for rule generation
     const settings = await Settings.findOne({});
     if (!settings) {
       throw new Error("Failed to retrieve settings after counter increment");
     }
 
-    // Generate prefix
-    const prefix = this.generateRulePart(
-      settings.stockNumberPrefixRule || { type: "none" },
-      settings,
-      context
-    );
+    // Decide which rules to use
+    let prefixRule: StockNumberRule | undefined;
+    let suffixRule: StockNumberRule | undefined;
 
-    // Generate suffix
-    const suffix = this.generateRulePart(
-      settings.stockNumberSuffixRule || { type: "none" },
-      settings,
-      context
-    );
+    if (condition === "Used") {
+      prefixRule = settings.usedStockNumberPrefixRule || settings.stockNumberPrefixRule;
+      suffixRule = settings.usedStockNumberSuffixRule || settings.stockNumberSuffixRule;
+    } else if (condition === "New") {
+      prefixRule = settings.newStockNumberPrefixRule || settings.stockNumberPrefixRule;
+      suffixRule = settings.newStockNumberSuffixRule || settings.stockNumberSuffixRule;
+    } else {
+      prefixRule = settings.stockNumberPrefixRule;
+      suffixRule = settings.stockNumberSuffixRule;
+    }
+
+    // Generate prefix/suffix
+    const prefix = this.generateRulePart(prefixRule || { type: "none" }, settings, context);
+    const suffix = this.generateRulePart(suffixRule || { type: "none" }, settings, context);
 
     // Construct the stock number
     const stockNumber = `${prefix}${sequentialNumber}${suffix}`;
-
     return stockNumber;
   }
 
@@ -79,32 +96,20 @@ export class StockNumberService {
         return "";
 
       case "source":
-        // Use provided source code or fall back to first available source
-        if (context?.sourceCode) {
-          return context.sourceCode.substring(0, 2).toUpperCase();
-        }
-        if (settings.sources && settings.sources.length > 0) {
-          return settings.sources[0].substring(0, 2).toUpperCase();
-        }
-        return "";
+        return context?.sourceCode
+          ? context.sourceCode.substring(0, 2).toUpperCase()
+          : settings.sources?.[0]?.substring(0, 2).toUpperCase() || "";
 
       case "buyer":
-        // Use provided buyer ID or fall back to first available buyer
-        if (context?.buyerId) {
-          return context.buyerId.substring(0, 2).toUpperCase();
-        }
-        if (settings.buyers && settings.buyers.length > 0) {
-          return settings.buyers[0].id.substring(0, 2).toUpperCase();
-        }
-        return "";
+        return context?.buyerId
+          ? context.buyerId.substring(0, 2).toUpperCase()
+          : settings.buyers?.[0]?.id?.substring(0, 2).toUpperCase() || "";
 
       case "custom":
-        // TypeScript knows this has customValue because of discriminated union
-        return rule.customValue || "";
+        return rule.customValue?.toUpperCase() || "";
 
       default:
         return "";
     }
   }
-
 }

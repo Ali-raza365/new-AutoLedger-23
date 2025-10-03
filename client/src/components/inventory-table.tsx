@@ -18,8 +18,54 @@ interface InventoryTableProps {
 }
 
 
+
 function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
-  const profitMargin = vehicle.markup && vehicle.cost ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1) : '0.0';
+  // Utility function for safe number formatting
+  const formatNumber = (value: string | number | null | undefined, decimals: number = 0, currency: boolean = false): string => {
+    if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+      return currency ? '$0' : 'N/A';
+    }
+    const num = Number(value);
+    if (isNaN(num)) {
+      return currency ? 'N/A' : 'N/A';
+    }
+    const options: Intl.NumberFormatOptions = {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    };
+    if (currency) {
+      options.style = 'currency';
+      options.currency = 'USD'; // Assuming USD
+    } else if (decimals > 0) {
+      options.style = 'decimal';
+    } else {
+      options.style = 'decimal';
+      options.maximumFractionDigits = 0;
+    }
+
+    // Explicitly handle currency formatting if it's not 'N/A'
+    const formatted = num.toLocaleString('en-US', options);
+
+    // If currency is true and toLocaleString didn't add the '$', add it manually for fields that could be 0
+    if (currency && !formatted.startsWith('$')) {
+        return `$${formatted}`;
+    }
+
+    return formatted;
+  };
+
+  // Calculation for profit margin (already in original code, slightly modified for safety)
+  const profitMargin = vehicle.markup && vehicle.cost && Number(vehicle.cost) !== 0
+    ? ((Number(vehicle.markup) / Number(vehicle.cost)) * 100).toFixed(1)
+    : '0.0';
+
+  // Helper component for a consistent data display block
+  const DataBlock = ({ label, value, className = '' }: { label: string, value: React.ReactNode, className?: string }) => (
+    <div className={className}>
+      <span className="text-sm font-medium text-gray-500 uppercase tracking-wide block">{label}</span>
+      <span className="text-lg font-semibold text-gray-900 block mt-1">{value}</span>
+    </div>
+  );
 
   return (
     <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -32,51 +78,47 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
             <p className="text-lg text-gray-600 mt-1">Stock #{vehicle.stockNumber}</p>
           </div>
           <div className="text-right">
-            <p className="text-3xl font-bold text-green-600">${Number(vehicle.price).toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-600">{formatNumber(vehicle.price, 0, true)}</p>
             <p className="text-sm text-gray-500">Listed Price</p>
           </div>
         </div>
       </DialogHeader>
 
       <div className="space-y-8 pt-6">
-        {/* Vehicle Identification */}
+
+        {/* Vehicle Identification - Updated with Series Detail, Vehicle Type, Interior Description, Exit Strategy */}
         <div className="bg-white rounded-lg p-6 shadow-sm border">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">Vehicle Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Vehicle Identification</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <DataBlock label="VIN Number" value={<span className="font-mono text-lg bg-gray-50 px-3 py-2 rounded border">{vehicle.vin}</span>} className="lg:col-span-2"/>
+
             <div className="space-y-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">VIN Number</span>
-                <span className="font-mono text-lg text-gray-900 bg-gray-50 px-3 py-2 rounded border">{vehicle.vin}</span>
-              </div>
+              <DataBlock label="Year & Make" value={`${vehicle.year} ${vehicle.make}`} />
+              <DataBlock label="Model & Series" value={`${vehicle.model} ${vehicle.series || ''}`} />
             </div>
             <div className="space-y-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Year & Make</span>
-                <span className="text-lg font-semibold text-gray-900">{vehicle.year} {vehicle.make}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Model & Series</span>
-                <span className="text-lg font-semibold text-gray-900">{vehicle.model} {vehicle.series || ''}</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Color</span>
-                <span className="text-lg font-medium text-gray-900">{vehicle.color}</span>
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">Body Type</span>
-                <span className="text-lg font-medium text-gray-900">{vehicle.body}</span>
-              </div>
+              <DataBlock label="Series Detail" value={vehicle.seriesDetail || 'N/A'} />
+              <DataBlock label="Body Type" value={vehicle.body || 'N/A'} />
             </div>
           </div>
         </div>
 
-        {/* Vehicle Status & Condition */}
+        {/* Additional Vehicle Details - New Section */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Additional Details</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <DataBlock label="Color" value={vehicle.color || 'N/A'} />
+            <DataBlock label="Interior Description" value={vehicle.interiorDescription || 'N/A'} />
+            <DataBlock label="Vehicle Type" value={vehicle.newUsed || 'N/A'} />
+            <DataBlock label="Exit Strategy" value={vehicle.exitStrategy || 'N/A'} />
+          </div>
+        </div>
+
+        {/* Vehicle Status & Condition - Updated with Current Status & Status Date */}
         <div className="bg-white rounded-lg p-6 shadow-sm border">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Vehicle Status</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 rounded-lg border">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div className="text-center p-4 rounded-lg border md:col-span-1">
               <div className="mb-2">
                 {vehicle.certified ? (
                   <Badge className="px-4 py-2 text-sm font-medium">
@@ -91,36 +133,105 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
               <p className="text-xs text-gray-600">Certification Status</p>
             </div>
             <div className="text-center p-4 rounded-lg border">
-              <p className="text-2xl font-bold text-gray-900">{vehicle.odometer.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{vehicle.odometer ? vehicle.odometer.toLocaleString() : 'N/A'}</p>
               <p className="text-sm text-gray-600">Miles</p>
             </div>
             <div className="text-center p-4 rounded-lg border">
               <p className="text-2xl font-bold text-gray-900">{vehicle.age || 0}</p>
               <p className="text-sm text-gray-600">Days on Lot</p>
             </div>
+            <div className="text-center p-4 rounded-lg border">
+              <p className="text-lg font-bold text-gray-900">{vehicle.currentStatus || 'N/A'}</p>
+              <p className="text-sm text-gray-600">Current Status</p>
+              {vehicle.statusDate && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Since: {new Date(vehicle.statusDate).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            <div className="text-center p-4 rounded-lg border">
+              <p className="text-2xl font-bold text-gray-900">{vehicle.overall || 'N/A'}</p>
+              <p className="text-sm text-gray-600">Overall Score</p>
+            </div>
           </div>
         </div>
 
-        {/* Pricing Breakdown */}
+        {/* Pricing Breakdown - Enhanced with more cost and price fields */}
         <div className="bg-white rounded-lg p-6 shadow-sm border">
           <h3 className="text-xl font-semibold text-gray-900 mb-4">Financial Details</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Listed Price</p>
-              <p className="text-2xl font-bold text-gray-900">${Number(vehicle.price).toLocaleString()}</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.price, 0, true)}</p>
+            </div>
+            <div className="p-4 rounded-lg border bg-blue-50">
+              <p className="text-sm font-medium text-blue-800 mb-1">Pending Price</p>
+              <p className="text-xl font-bold text-blue-900">{formatNumber(vehicle.pendingPrice, 0, true)}</p>
             </div>
             <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Book Value</p>
-              <p className="text-2xl font-bold text-gray-900">${vehicle.bookValue ? Number(vehicle.bookValue).toLocaleString() : 'N/A'}</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.bookValue, 0, true)}</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Original Cost</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.originalCost, 0, true)}</p>
             </div>
             <div className="p-4 rounded-lg border">
               <p className="text-sm font-medium text-gray-600 mb-1">Our Cost</p>
-              <p className="text-2xl font-bold text-gray-900">${Number(vehicle.cost).toLocaleString()}</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.cost, 0, true)}</p>
             </div>
             <div className="p-4 rounded-lg border">
-              <p className="text-sm font-medium text-gray-600 mb-1">Markup</p>
-              <p className="text-2xl font-bold text-gray-900">${vehicle.markup ? Number(vehicle.markup).toLocaleString() : '0'}</p>
+              <p className="text-sm font-medium text-gray-600 mb-1">Applicable Cost</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.applicableCost, 0, true)}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mt-4">
+            <div className="p-4 rounded-lg border bg-green-50">
+              <p className="text-sm font-medium text-green-800 mb-1">Markup</p>
+              <p className="text-xl font-bold text-green-900">{formatNumber(vehicle.markup, 0, true)}</p>
               <p className="text-xs text-gray-500 mt-1">{profitMargin}% margin</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Cost Difference</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.costDifference, 0, true)}</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Water</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.water, 0, true)}</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Applicable Water</p>
+              <p className="text-xl font-bold text-gray-900">{formatNumber(vehicle.applicableWater, 0, true)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Market & Valuation - New Section */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border">
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">Market & Valuation</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Price Rank</p>
+              <p className="text-2xl font-bold text-gray-900">{vehicle.priceRank || 'N/A'}</p>
+              <p className="text-xs text-gray-500 mt-1">Bucket: {vehicle.priceRankBucket || 'N/A'}</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">vRank</p>
+              <p className="text-2xl font-bold text-gray-900">{vehicle.vRank || 'N/A'}</p>
+              <p className="text-xs text-gray-500 mt-1">Bucket: {vehicle.vRankBucket || 'N/A'}</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">Mkt Days Supply</p>
+              <p className="text-2xl font-bold text-gray-900">{vehicle.marketDaysSupplyLikeMine || 'N/A'}</p>
+              <p className="text-xs text-gray-500 mt-1">Like Mine</p>
+            </div>
+            <div className="p-4 rounded-lg border">
+              <p className="text-sm font-medium text-gray-600 mb-1">% Cost to Market</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {vehicle.costToMarketPct ? `${vehicle.costToMarketPct}%` : 'N/A'}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">Applicable: {vehicle.applicableCostToMarketPct ? `${vehicle.applicableCostToMarketPct}%` : 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -139,6 +250,7 @@ function VehicleViewDialog({ vehicle }: { vehicle: Inventory }) {
     </DialogContent>
   );
 }
+
 
 export default function InventoryTable({ inventory, isLoading, visibleColumns }: InventoryTableProps) {
   const { toast } = useToast();
@@ -198,166 +310,88 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
           <TableHeader>
             <TableRow className="bg-gray-50">
               {visibleColumns.stockNumber && <TableHead>Stock #</TableHead>}
-              {visibleColumns.dateLogged && <TableHead>Date Logged</TableHead>}
               {visibleColumns.vin && <TableHead>VIN</TableHead>}
-              {visibleColumns.vehicle && <TableHead>Vehicle</TableHead>}
-              {visibleColumns.newUsed && <TableHead>Vehicle Type</TableHead>}
-              {visibleColumns.specificSource && <TableHead>Source </TableHead>}
-
               {visibleColumns.year && <TableHead>Year</TableHead>}
               {visibleColumns.make && <TableHead>Make</TableHead>}
               {visibleColumns.model && <TableHead>Model</TableHead>}
               {visibleColumns.series && <TableHead>Series</TableHead>}
+              {visibleColumns.seriesDetail && <TableHead>Series Detail</TableHead>}
               {visibleColumns.color && <TableHead>Color</TableHead>}
+              {visibleColumns.interiorDescription && <TableHead>Interior Description</TableHead>}
+              {visibleColumns.exitStrategy && <TableHead>Exit Strategy</TableHead>}
               {visibleColumns.certified && <TableHead>Certified</TableHead>}
+              {visibleColumns.newUsed && <TableHead>Vehicle Type</TableHead>}
               {visibleColumns.body && <TableHead>Body</TableHead>}
               {visibleColumns.price && <TableHead>Price</TableHead>}
+              {visibleColumns.pendingPrice && <TableHead>Pending Price</TableHead>}
               {visibleColumns.bookValue && <TableHead>Book Value</TableHead>}
               {visibleColumns.cost && <TableHead>Cost</TableHead>}
+              {visibleColumns.applicableCost && <TableHead>Applicable Cost</TableHead>}
+              {visibleColumns.originalCost && <TableHead>Original Cost</TableHead>}
+              {visibleColumns.costDifference && <TableHead>Cost Difference</TableHead>}
               {visibleColumns.markup && <TableHead>Markup</TableHead>}
-              {visibleColumns.hqAppraisalSuggested && <TableHead>HQ Appraisal Suggested</TableHead>}
+              {visibleColumns.water && <TableHead>Water</TableHead>}
+              {visibleColumns.applicableWater && <TableHead>Applicable Water</TableHead>}
+              {visibleColumns.overall && <TableHead>Overall</TableHead>}
+              {visibleColumns.marketDaysSupplyLikeMine && <TableHead>Market Days Supply Like Mine</TableHead>}
+              {visibleColumns.costToMarketPct && <TableHead>% Cost To Market</TableHead>}
+              {visibleColumns.applicableCostToMarketPct && <TableHead>Applicable % Cost To Market</TableHead>}
+              {visibleColumns.marketPct && <TableHead>% Mkt</TableHead>}
               {visibleColumns.odometer && <TableHead>Odometer</TableHead>}
               {visibleColumns.age && <TableHead>Age</TableHead>}
+              {visibleColumns.priceRank && <TableHead>Price Rank</TableHead>}
+              {visibleColumns.vRank && <TableHead>vRank</TableHead>}
+              {visibleColumns.priceRankBucket && <TableHead>Price Rank Bucket</TableHead>}
+              {visibleColumns.vRankBucket && <TableHead>vRank Bucket</TableHead>}
+              {visibleColumns.currentStatus && <TableHead>Current Status</TableHead>}
+              {visibleColumns.statusDate && <TableHead>Status Date</TableHead>}
+              {/* {visibleColumns.dateLogged && <TableHead>Date Logged</TableHead>} */}
+              {visibleColumns.createdAt && <TableHead>Created At</TableHead>}
               {visibleColumns.actions && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
 
           <TableBody>
             {inventory.map((vehicle) => (
-              <TableRow
-                key={vehicle.id}
-                className="hover:bg-gray-50"
-                data-testid={`row-vehicle-${vehicle.id}`}
-              >
-                {visibleColumns.stockNumber && (
-                  <TableCell className="font-medium text-primary" data-testid={`text-stock-${vehicle.id}`}>
-                    {vehicle.stockNumber}
-                  </TableCell>
-                )}
-
-                {visibleColumns.dateLogged && (
-                  <TableCell className="text-gray-600" data-testid={`text-dateLogged-${vehicle.id}`}>
-                    {new Date(vehicle.dateLogged).toLocaleDateString()}
-                  </TableCell>
-                )}
-
-                {visibleColumns.vin && (
-                  <TableCell className="text-gray-600 font-mono text-sm" data-testid={`text-vin-${vehicle.id}`}>
-                    {vehicle.vin}
-                  </TableCell>
-                )}
-
-                {visibleColumns.vehicle && (
-                  <TableCell>
-                    <div>
-                      <div className="font-medium text-gray-900" data-testid={`text-vehicle-${vehicle.id}`}>
-                        {vehicle.year} {vehicle.make} {vehicle.model} {vehicle.series}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {vehicle.body}
-                        {vehicle.certified && (
-                          <Badge variant="secondary" className="ml-2">Certified</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                )}
-                {visibleColumns.newUsed && (
-                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
-                    {vehicle.newUsed}
-                  </TableCell>
-                )}
-                {visibleColumns.specificSource && (
-                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
-                    {vehicle.specificSource}
-                  </TableCell>
-                )}
-
-                {visibleColumns.year && (
-                  <TableCell className="text-gray-600" data-testid={`text-year-${vehicle.id}`}>
-                    {vehicle.year}
-                  </TableCell>
-                )}
-
-                {visibleColumns.make && (
-                  <TableCell className="text-gray-600" data-testid={`text-make-${vehicle.id}`}>
-                    {vehicle.make}
-                  </TableCell>
-                )}
-
-                {visibleColumns.model && (
-                  <TableCell className="text-gray-600" data-testid={`text-model-${vehicle.id}`}>
-                    {vehicle.model}
-                  </TableCell>
-                )}
-
-                {visibleColumns.series && (
-                  <TableCell className="text-gray-600" data-testid={`text-series-${vehicle.id}`}>
-                    {vehicle.series}
-                  </TableCell>
-                )}
-
-
-
-                {visibleColumns.color && (
-                  <TableCell className="text-gray-600" data-testid={`text-color-${vehicle.id}`}>
-                    {vehicle.color}
-                  </TableCell>
-                )}
-
-                {visibleColumns.certified && (
-                  <TableCell className="text-gray-600" data-testid={`text-certified-${vehicle.id}`}>
-                    {vehicle.certified ? "Yes" : "No"}
-                  </TableCell>
-                )}
-
-                {visibleColumns.body && (
-                  <TableCell className="text-gray-600" data-testid={`text-body-${vehicle.id}`}>
-                    {vehicle.body}
-                  </TableCell>
-                )}
-
-                {visibleColumns.price && (
-                  <TableCell className="font-medium text-gray-900" data-testid={`text-price-${vehicle.id}`}>
-                    ${Number(vehicle.price).toLocaleString()}
-                  </TableCell>
-                )}
-
-                {visibleColumns.bookValue && (
-                  <TableCell className="text-gray-600" data-testid={`text-bookValue-${vehicle.id}`}>
-                    ${Number(vehicle.bookValue).toLocaleString()}
-                  </TableCell>
-                )}
-
-                {visibleColumns.cost && (
-                  <TableCell className="text-gray-600" data-testid={`text-cost-${vehicle.id}`}>
-                    ${Number(vehicle.cost).toLocaleString()}
-                  </TableCell>
-                )}
-
-                {visibleColumns.markup && (
-                  <TableCell className="text-gray-600" data-testid={`text-markup-${vehicle.id}`}>
-                    ${Number(vehicle.markup).toLocaleString()}
-                  </TableCell>
-                )}
-
-                {visibleColumns.hqAppraisalSuggested && (
-                  <TableCell className="text-gray-600" data-testid={`text-hqAppraisalSuggested-${vehicle.id}`}>
-                    {vehicle.hqAppraisalSuggested ? "Yes" : "No"}
-                  </TableCell>
-                )}
-
-                {visibleColumns.odometer && (
-                  <TableCell className="text-gray-600" data-testid={`text-odometer-${vehicle.id}`}>
-                    {vehicle.odometer.toLocaleString()} mi
-                  </TableCell>
-                )}
-
-                {visibleColumns.age && (
-                  <TableCell className="text-gray-600" data-testid={`text-age-${vehicle.id}`}>
-                    {vehicle.age || 0} days
-                  </TableCell>
-                )}
+              <TableRow key={vehicle.id} className="hover:bg-gray-50">
+                {visibleColumns.stockNumber && <TableCell>{vehicle.stockNumber}</TableCell>}
+                {visibleColumns.vin && <TableCell className="font-mono text-sm">{vehicle.vin}</TableCell>}
+                {visibleColumns.year && <TableCell>{vehicle.year}</TableCell>}
+                {visibleColumns.make && <TableCell>{vehicle.make}</TableCell>}
+                {visibleColumns.model && <TableCell>{vehicle.model}</TableCell>}
+                {visibleColumns.series && <TableCell>{vehicle.series}</TableCell>}
+                {visibleColumns.seriesDetail && <TableCell>{vehicle.seriesDetail}</TableCell>}
+                {visibleColumns.color && <TableCell>{vehicle.color}</TableCell>}
+                {visibleColumns.interiorDescription && <TableCell>{vehicle.interiorDescription}</TableCell>}
+                {visibleColumns.exitStrategy && <TableCell>{vehicle.exitStrategy}</TableCell>}
+                {visibleColumns.certified && <TableCell>{vehicle.certified ? "Yes" : "No"}</TableCell>}
+                {visibleColumns.newUsed && <TableCell>{vehicle.newUsed}</TableCell>}
+                {visibleColumns.body && <TableCell>{vehicle.body}</TableCell>}
+                {visibleColumns.price && <TableCell>${Number(vehicle.price).toLocaleString()}</TableCell>}
+                {visibleColumns.pendingPrice && <TableCell>${Number(vehicle.pendingPrice).toLocaleString()}</TableCell>}
+                {visibleColumns.bookValue && <TableCell>${Number(vehicle.bookValue).toLocaleString()}</TableCell>}
+                {visibleColumns.cost && <TableCell>${Number(vehicle.cost).toLocaleString()}</TableCell>}
+                {visibleColumns.applicableCost && <TableCell>${Number(vehicle.applicableCost).toLocaleString()}</TableCell>}
+                {visibleColumns.originalCost && <TableCell>${Number(vehicle.originalCost).toLocaleString()}</TableCell>}
+                {visibleColumns.costDifference && <TableCell>${Number(vehicle.costDifference).toLocaleString()}</TableCell>}
+                {visibleColumns.markup && <TableCell>${Number(vehicle.markup).toLocaleString()}</TableCell>}
+                {visibleColumns.water && <TableCell>${Number(vehicle.water).toLocaleString()}</TableCell>}
+                {visibleColumns.applicableWater && <TableCell>${Number(vehicle.applicableWater).toLocaleString()}</TableCell>}
+                {visibleColumns.overall && <TableCell>{vehicle.overall}</TableCell>}
+                {visibleColumns.marketDaysSupplyLikeMine && <TableCell>{vehicle.marketDaysSupplyLikeMine}</TableCell>}
+                {visibleColumns.costToMarketPct && <TableCell>{vehicle.costToMarketPct}%</TableCell>}
+                {visibleColumns.applicableCostToMarketPct && <TableCell>{vehicle.applicableCostToMarketPct}%</TableCell>}
+                {visibleColumns.marketPct && <TableCell>{vehicle.marketPct}%</TableCell>}
+                {visibleColumns.odometer && <TableCell>{vehicle.odometer?.toLocaleString()}</TableCell>}
+                {visibleColumns.age && <TableCell>{vehicle.age}</TableCell>}
+                {visibleColumns.priceRank && <TableCell>{vehicle.priceRank}</TableCell>}
+                {visibleColumns.vRank && <TableCell>{vehicle.vRank}</TableCell>}
+                {visibleColumns.priceRankBucket && <TableCell>{vehicle.priceRankBucket}</TableCell>}
+                {visibleColumns.vRankBucket && <TableCell>{vehicle.vRankBucket}</TableCell>}
+                {visibleColumns.currentStatus && <TableCell>{vehicle.currentStatus}</TableCell>}
+                {visibleColumns.statusDate && <TableCell>{new Date(vehicle.statusDate).toLocaleDateString()}</TableCell>}
+                {/* {visibleColumns.dateLogged && <TableCell>{new Date(vehicle.dateLogged).toLocaleDateString()}</TableCell>} */}
+                {visibleColumns.createdAt && <TableCell>{new Date(vehicle.createdAt).toLocaleDateString()}</TableCell>}
 
                 {visibleColumns.actions && (
                   <TableCell>
@@ -415,6 +449,8 @@ export default function InventoryTable({ inventory, isLoading, visibleColumns }:
             ))}
           </TableBody>
         </Table>
+
+
       </div>
     </Card>
 

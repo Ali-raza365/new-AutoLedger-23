@@ -16,7 +16,7 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Car Inventory", href: "/inventory", icon: Car },
   { name: "Sales Log", href: "/sales", icon: Receipt },
-  { name: "Reports", href: "/reports", icon: ChartBar },
+  // { name: "Reports", href: "/reports", icon: ChartBar },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

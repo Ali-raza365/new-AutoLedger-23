@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,12 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
   const [isVinLookupLoading, setIsVinLookupLoading] = useState(false);
   const [vinLookupResult, setVinLookupResult] = useState<VINDecodeResult | null>(null);
 
+  // Fetch settings data
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    queryFn: () => apiRequest("/api/settings"),
+  });
+
   const form = useForm<InsertInventory>({
     resolver: zodResolver(insertInventorySchema),
     defaultValues: {
@@ -32,15 +38,38 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
       make: vehicle.make,
       model: vehicle.model,
       series: vehicle.series || "",
+      source: vehicle.source || "",
+      seriesDetail: vehicle.seriesDetail || "",
       color: vehicle.color,
+      interiorDescription: vehicle.interiorDescription || "",
+      exitStrategy: vehicle.exitStrategy || "",
       certified: vehicle.certified || false,
       body: vehicle.body,
       price: vehicle.price,
-      bookValue: vehicle.bookValue || 0,
+      pendingPrice: vehicle.pendingPrice || null,
+      bookValue: vehicle.bookValue || null,
       cost: vehicle.cost,
-      markup: vehicle.markup || 0,
+      applicableCost: vehicle.applicableCost || null,
+      originalCost: vehicle.originalCost || null,
+      costDifference: vehicle.costDifference || null,
+      markup: vehicle.markup || null,
+      water: vehicle.water || null,
+      applicableWater: vehicle.applicableWater || null,
+      overall: vehicle.overall || null,
+      marketDaysSupplyLikeMine: vehicle.marketDaysSupplyLikeMine || null,
+      costToMarketPct: vehicle.costToMarketPct || null,
+      applicableCostToMarketPct: vehicle.applicableCostToMarketPct || null,
+      marketPct: vehicle.marketPct || null,
       odometer: vehicle.odometer,
-      age: vehicle.age || 0,
+      age: vehicle.age || null,
+      priceRank: vehicle.priceRank || "",
+      vRank: vehicle.vRank || "",
+      priceRankBucket: vehicle.priceRankBucket || "",
+      vRankBucket: vehicle.vRankBucket || "",
+      currentStatus: vehicle.currentStatus || "",
+      statusDate: vehicle.statusDate || new Date(),
+      dateLogged: vehicle.dateLogged || new Date(),
+      newUsed: vehicle.newUsed || "",
     },
   });
 
@@ -83,58 +112,6 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
     }
   }, [watchPrice, watchCost, form]);
 
-  // VIN Lookup function
-  const handleVinLookup = async () => {
-    const vin = form.getValues("vin");
-    if (!vin || vin.length !== 17) {
-      toast({
-        title: "Invalid VIN",
-        description: "VIN must be exactly 17 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsVinLookupLoading(true);
-    try {
-      const year = form.getValues("year");
-      const url = year ? `/api/inventory/vin-lookup/${vin}?year=${year}` : `/api/inventory/vin-lookup/${vin}`;
-      const response = await apiRequest(url);
-      
-      setVinLookupResult(response.vehicleData);
-      
-      // Auto-populate form fields
-      if (response.vehicleData.make) form.setValue("make", response.vehicleData.make);
-      if (response.vehicleData.model) form.setValue("model", response.vehicleData.model);
-      if (response.vehicleData.year) form.setValue("year", response.vehicleData.year);
-      if (response.vehicleData.series) form.setValue("series", response.vehicleData.series);
-      // Map NHTSA bodyClass to our body type options
-      if (response.vehicleData.bodyClass) {
-        const bodyClass = response.vehicleData.bodyClass.toLowerCase();
-        let mappedBody = "sedan"; // default
-        if (bodyClass.includes("suv") || bodyClass.includes("utility")) mappedBody = "suv";
-        else if (bodyClass.includes("truck") || bodyClass.includes("pickup")) mappedBody = "truck";
-        else if (bodyClass.includes("coupe")) mappedBody = "coupe";
-        else if (bodyClass.includes("convertible")) mappedBody = "convertible";
-        else if (bodyClass.includes("wagon")) mappedBody = "wagon";
-        else if (bodyClass.includes("hatchback")) mappedBody = "hatchback";
-        form.setValue("body", mappedBody);
-      }
-      
-      toast({
-        title: "VIN Lookup Successful",
-        description: "Vehicle details have been updated from VIN",
-      });
-    } catch (error: any) {
-      toast({
-        title: "VIN Lookup Failed",
-        description: error.message || "Failed to decode VIN. Please update vehicle details manually.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsVinLookupLoading(false);
-    }
-  };
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -162,334 +139,217 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
               <h3 className="text-xl font-semibold text-gray-900">Basic Vehicle Information</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Stock Number */}
-            <FormField
-              control={form.control}
-              name="stockNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Stock Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="A2024001" {...field} data-testid="input-stock-number" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* VIN */}
-            <FormField
-              control={form.control}
-              name="vin"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>VIN</FormLabel>
-                  <FormControl>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="1HGCM82633A123456"
-                        maxLength={17}
-                        {...field}
-                        onChange={(e) => {
-                          const value = e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
-                          field.onChange(value);
-                        }}
-                        data-testid="input-vin"
-                        className={vinLookupResult ? "border-green-300" : ""}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleVinLookup}
-                        disabled={isVinLookupLoading || !field.value || field.value.length !== 17}
-                        data-testid="button-lookup-vin"
-                      >
-                        {isVinLookupLoading ? (
-                          <div className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full" />
-                        ) : (
-                          <Search className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  {vinLookupResult && (
-                    <div className="flex items-center gap-1 text-sm text-green-600">
-                      <Check className="w-3 h-3" />
-                      <span>Vehicle details updated from VIN</span>
-                    </div>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Year */}
-            <FormField
-              control={form.control}
-              name="year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Year</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="1900"
-                      max="2030"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      data-testid="input-year"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Make */}
-            <FormField
-              control={form.control}
-              name="make"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Make</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Toyota"
-                      {...field}
-                      data-testid="input-make"
-                      className={vinLookupResult?.make ? "bg-green-50 border-green-300" : ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Model */}
-            <FormField
-              control={form.control}
-              name="model"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Model</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Camry"
-                      {...field}
-                      data-testid="input-model"
-                      className={vinLookupResult?.model ? "bg-green-50 border-green-300" : ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Series/Trim */}
-            <FormField
-              control={form.control}
-              name="series"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Series/Trim</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="LE"
-                      {...field}
-                      data-testid="input-series"
-                      className={vinLookupResult?.series ? "bg-green-50 border-green-300" : ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Color */}
-            <FormField
-              control={form.control}
-              name="color"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Color</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Silver Metallic" {...field} data-testid="input-color" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Certified */}
-            <FormField
-              control={form.control}
-              name="certified"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Certified</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(value === "true")} value={field.value?.toString() || "false"}>
+              {/* Stock Number */}
+              <FormField
+                control={form.control}
+                name="stockNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Stock Number</FormLabel>
                     <FormControl>
-                      <SelectTrigger data-testid="select-certified">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
+                      <Input 
+                      disabled
+                      placeholder="A2024001" {...field} data-testid="input-stock-number" />
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="true">Yes</SelectItem>
-                      <SelectItem value="false">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Body */}
-            <FormField
-              control={form.control}
-              name="body"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Body Type</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger data-testid="select-body">
-                        <SelectValue placeholder="Select body type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="sedan">Sedan</SelectItem>
-                      <SelectItem value="suv">SUV</SelectItem>
-                      <SelectItem value="truck">Truck</SelectItem>
-                      <SelectItem value="coupe">Coupe</SelectItem>
-                      <SelectItem value="convertible">Convertible</SelectItem>
-                      <SelectItem value="wagon">Wagon</SelectItem>
-                      <SelectItem value="hatchback">Hatchback</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Price */}
-            <FormField
-              control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="28450"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                      data-testid="input-price"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Book Value */}
-            <FormField
-              control={form.control}
-              name="bookValue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Book Value ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="26500"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                      data-testid="input-book-value"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Cost */}
-            <FormField
-              control={form.control}
-              name="cost"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Cost ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="24000"
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                      data-testid="input-cost"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Markup (calculated) */}
-            <FormField
-              control={form.control}
-              name="markup"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Markup ($)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      readOnly
-                      className="bg-gray-100"
-                      data-testid="input-markup"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Odometer */}
-            <FormField
-              control={form.control}
-              name="odometer"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Odometer (miles)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="12450"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      data-testid="input-odometer"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            </div>
-          </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          {/* Vehicle Specifications */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-              <h3 className="text-xl font-semibold text-gray-900">Vehicle Specifications</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Source */}
+              <FormField
+                control={form.control}
+                name="source"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Source</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-source">
+                          <SelectValue placeholder="Select source" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {settings?.sources?.map((source: string) => (
+                          <SelectItem key={source} value={source}>
+                            {source + ` (${source.substring(0, 1).toUpperCase()})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* VIN */}
+              <FormField
+                control={form.control}
+                name="vin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VIN</FormLabel>
+                    <FormControl>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="1HGCM82633A123456"
+                          maxLength={17}
+                          {...field}
+                             disabled
+                          onChange={(e) => {
+                            const value = e.target.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+                            field.onChange(value);
+                          }}
+                          data-testid="input-vin"
+                          className={vinLookupResult ? "border-green-300" : ""}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={true}
+                          data-testid="button-lookup-vin"
+                        >
+                       
+                        </Button>
+                      </div>
+                    </FormControl>
+                    {vinLookupResult && (
+                      <div className="flex items-center gap-1 text-sm text-green-600">
+                        <Check className="w-3 h-3" />
+                        <span>Vehicle details updated from VIN</span>
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* New/Used */}
+              <FormField
+                control={form.control}
+                name="newUsed"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New/Used</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-new-used">
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="New">New</SelectItem>
+                        <SelectItem value="Used">Used</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Year */}
+              <FormField
+                control={form.control}
+                name="year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Year</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        min="1900"
+                        max="2030"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        data-testid="input-year"
+                        className={vinLookupResult?.year ? "bg-green-50 border-green-300" : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Make */}
+              <FormField
+                control={form.control}
+                name="make"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Make</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Toyota"
+                        {...field}
+                        data-testid="input-make"
+                        className={vinLookupResult?.make ? "bg-green-50 border-green-300" : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Model */}
+              <FormField
+                control={form.control}
+                name="model"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Model</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Camry"
+                        {...field}
+                        data-testid="input-model"
+                        className={vinLookupResult?.model ? "bg-green-50 border-green-300" : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Series/Trim */}
+              <FormField
+                control={form.control}
+                name="series"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Series/Trim</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="LE"
+                        {...field}
+                        data-testid="input-series"
+                        className={vinLookupResult?.series || vinLookupResult?.trim ? "bg-green-50 border-green-300" : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Series Detail */}
+              <FormField
+                control={form.control}
+                name="seriesDetail"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Series Details</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Enter series details"
+                        {...field}
+                        data-testid="input-series-detail"
+                        className={vinLookupResult?.seriesDetail ? "bg-green-50 border-green-300" : ""}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               {/* Color */}
               <FormField
                 control={form.control}
@@ -497,35 +357,57 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Color</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-color">
+                          <SelectValue placeholder="Select Color" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {settings?.colors?.map((color: any) => (
+                          <SelectItem key={color.code} value={color.name}>
+                            {color.name} ({color.code})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Interior Description */}
+              <FormField
+                control={form.control}
+                name="interiorDescription"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Interior Description</FormLabel>
                     <FormControl>
-                      <Input placeholder="Silver Metallic" {...field} data-testid="input-color" />
+                      <Input placeholder="Leather, Cloth, etc." {...field} data-testid="input-interior" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
-              {/* Body */}
+
+              {/* Exit Strategy */}
               <FormField
                 control={form.control}
-                name="body"
+                name="exitStrategy"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Body Type</FormLabel>
+                    <FormLabel>Exit Strategy</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-body">
-                          <SelectValue placeholder="Select body type" />
+                        <SelectTrigger data-testid="select-exit-strategy">
+                          <SelectValue placeholder="Select strategy" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Sedan">Sedan</SelectItem>
-                        <SelectItem value="SUV">SUV</SelectItem>
-                        <SelectItem value="Truck">Truck</SelectItem>
-                        <SelectItem value="Coupe">Coupe</SelectItem>
-                        <SelectItem value="Convertible">Convertible</SelectItem>
-                        <SelectItem value="Wagon">Wagon</SelectItem>
-                        <SelectItem value="Hatchback">Hatchback</SelectItem>
+                        <SelectItem value="Retail">Retail</SelectItem>
+                        <SelectItem value="Wholesale">Wholesale</SelectItem>
+                        <SelectItem value="Auction">Auction</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -547,124 +429,43 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="true">Yes</SelectItem>
                         <SelectItem value="false">No</SelectItem>
+                        <SelectItem value="true">Yes</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-          </div>
+              
+              {/* Body */}
+              <FormField
+                control={form.control}
+                name="body"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Body Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-body" className={vinLookupResult?.bodyClass ? "bg-green-50 border-green-300" : ""}>
+                          <SelectValue placeholder="Select body type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="sedan">Sedan</SelectItem>
+                        <SelectItem value="suv">SUV</SelectItem>
+                        <SelectItem value="truck">Truck</SelectItem>
+                        <SelectItem value="coupe">Coupe</SelectItem>
+                        <SelectItem value="convertible">Convertible</SelectItem>
+                        <SelectItem value="wagon">Wagon</SelectItem>
+                        <SelectItem value="hatchback">Hatchback</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          {/* Financial Information */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-              <h3 className="text-xl font-semibold text-gray-900">Financial Information</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Price */}
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="28450"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                        data-testid="input-price"
-                        className="font-semibold text-green-600"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Book Value */}
-              <FormField
-                control={form.control}
-                name="bookValue"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Book Value ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="26500"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                        data-testid="input-book-value"
-                        className="font-semibold text-blue-600"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Cost */}
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cost ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="24000"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value) || 0)}
-                        data-testid="input-cost"
-                        className="font-semibold text-red-600"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Markup (calculated) */}
-              <FormField
-                control={form.control}
-                name="markup"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Markup ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        readOnly
-                        className="bg-purple-50 font-semibold text-purple-600 border-purple-200"
-                        data-testid="input-markup"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-
-          {/* Vehicle Condition */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center mb-4">
-              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
-              <h3 className="text-xl font-semibold text-gray-900">Vehicle Condition</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Odometer */}
               <FormField
                 control={form.control}
@@ -679,14 +480,169 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         {...field}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                         data-testid="input-odometer"
-                        className="font-semibold text-blue-600"
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+            </div>
+          </div>
+
+          {/* Financial Information */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Financial Information</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Price */}
+              <FormField
+                control={form.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="28450"
+                        {...field}
+                        value={field.value || 0}
+                        onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                        data-testid="input-cost-to-market"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Applicable % Cost To Market */}
+              <FormField
+                control={form.control}
+                name="applicableCostToMarketPct"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Applicable % Cost To Market</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Enter %"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                        data-testid="input-applicable-cost-to-market"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* % Mkt */}
+              <FormField
+                control={form.control}
+                name="marketPct"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>% Mkt</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Enter %"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(Number(e.target.value) || null)}
+                        data-testid="input-market-pct"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Ranking & Performance */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Ranking & Performance</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Price Rank */}
+              <FormField
+                control={form.control}
+                name="priceRank"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Rank</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter Price Rank" {...field} data-testid="input-price-rank" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* vRank */}
+              <FormField
+                control={form.control}
+                name="vRank"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>vRank</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter vRank" {...field} data-testid="input-vrank" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Price Rank Bucket */}
+              <FormField
+                control={form.control}
+                name="priceRankBucket"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price Rank Bucket</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter Price Rank Bucket" {...field} data-testid="input-price-rank-bucket" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* vRank Bucket */}
+              <FormField
+                control={form.control}
+                name="vRankBucket"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>vRank Bucket</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter vRank Bucket" {...field} data-testid="input-vrank-bucket" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Vehicle Age */}
+          <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100">
+            <div className="flex items-center mb-4">
+              <div className="w-3 h-3 bg-orange-500 rounded-full mr-3"></div>
+              <h3 className="text-xl font-semibold text-gray-900">Vehicle Age</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Age */}
               <FormField
                 control={form.control}
@@ -699,9 +655,9 @@ export default function InventoryEditForm({ vehicle, onSuccess }: InventoryEditF
                         type="number"
                         placeholder="45"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        value={field.value || ""}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
                         data-testid="input-age"
-                        className="font-semibold text-orange-600"
                       />
                     </FormControl>
                     <FormMessage />

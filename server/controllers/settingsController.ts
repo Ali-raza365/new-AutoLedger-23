@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Settings } from "../models";
-import { insertSettingsSchema, type InsertSettings } from "@shared/schema";
+import { insertColorSchema, insertSettingsSchema, insertUserSchema, type InsertSettings } from "@shared/schema";
 import { NotFoundError } from "../utils/errors";
 import { sendSuccess } from "../utils/response";
 import { asyncHandler } from "../middleware";
@@ -121,4 +121,132 @@ export const resetSettings = asyncHandler(async (req: Request, res: Response, ne
   });
   
   sendSuccess(res, defaultSettings, "Settings reset to defaults successfully");
+});
+
+export const importSettings = asyncHandler(async (req: Request, res: Response) => {
+  const { type } = req.params;
+  const { data } = req.body;
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return res.status(400).json({ message: "Request must contain a non-empty array of data" });
+  }
+
+  const results = {
+    success: [] as any[],
+    failed: [] as { row: number; error: string; data: any }[],
+    successCount: 0,
+    failedCount: 0,
+  };
+
+  // Load or create settings doc
+  let settings = await Settings.findOne();
+  if (!settings) {
+    settings = new Settings({});
+  }
+
+  let currentList: any[] = (settings as any)[type] || [];
+
+  switch (type) {
+    case "colors": {
+      for (let i = 0; i < data.length; i++) {
+        try {
+          const parsed = insertColorSchema.parse(data[i]); // { code, name }
+          const exists = currentList.some(
+            (c: any) => c.code.toLowerCase() === parsed.code.toLowerCase()
+          );
+          if (exists) {
+            results.failed.push({
+              row: i + 1,
+              error: `Color with code '${parsed.code}' already exists`,
+              data: data[i],
+            });
+            continue;
+          }
+          currentList.push(parsed);
+          results.success.push(parsed);
+        } catch (err: any) {
+          results.failed.push({ row: i + 1, error: err.message, data: data[i] });
+        }
+      }
+      settings.colors = currentList;
+      break;
+    }
+
+case "users": {
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const row = {
+        ...data[i],
+        roles: typeof data[i].roles === "string"
+          ? data[i].roles.split(",").map((r: string) => r.trim())
+          : [],
+      };
+
+      const parsed = insertUserSchema.parse(row); // validate
+      const exists = currentList.some(
+        (u: any) => u.code.toLowerCase() === parsed.code.toLowerCase()
+      );
+
+      if (exists) {
+        results.failed.push({
+          row: i + 1,
+          error: `User with code '${parsed.code}' already exists`,
+          data: data[i],
+        });
+        continue;
+      }
+
+      currentList.push(parsed);
+      results.success.push(parsed);
+    } catch (err: any) {
+      results.failed.push({ row: i + 1, error: err.message, data: data[i] });
+    }
+  }
+  console.log(currentList);
+  settings.users = currentList;
+  break;
+}
+
+
+    case "sources":
+    case "lenders":
+    case "status": {
+      for (let i = 0; i < data.length; i++) {
+        const val = typeof data[i] === "string" ? data[i].trim() : "";
+        if (!val) {
+          results.failed.push({ row: i + 1, error: "Invalid value", data: data[i] });
+          continue;
+        }
+        const exists = currentList.some((s: string) => s.toLowerCase() === val.toLowerCase());
+        if (exists) {
+          results.failed.push({
+            row: i + 1,
+            error: `${type.slice(0, -1)} '${val}' already exists`,
+            data: data[i],
+          });
+          continue;
+        }
+        currentList.push(val);
+        results.success.push(val);
+      }
+      (settings as any)[type] = currentList;
+      break;
+    }
+
+    default:
+      return res.status(400).json({ message: `Unsupported import type: ${type}` });
+  }
+
+  results.successCount = results.success.length;
+  results.failedCount = results.failed.length;
+
+  settings.updatedAt = new Date();
+  await settings.save();
+
+  return sendSuccess(
+    res,
+    results,
+    `Imported ${results.successCount} ${type} successfully, ${results.failedCount} failed`,
+    201
+  );
 });

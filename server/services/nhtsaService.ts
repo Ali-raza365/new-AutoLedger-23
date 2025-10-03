@@ -26,6 +26,9 @@ interface ProcessedVehicleData {
   plantCountry?: string;
   vehicleType?: string;
   series?: string;
+  color?: string;
+  price?: any;
+  seriesDetail?: string;
 }
 
 /**
@@ -111,7 +114,7 @@ export class NHTSAService {
   private static processVehicleData(results: NHTSAVehicleData[]): ProcessedVehicleData {
     const vehicleData: ProcessedVehicleData = {};
 
-    console.log({results})
+    console.log({ results })
     // Assuming results[0] is the decoded object
     const decoded = results[0];
 
@@ -128,7 +131,8 @@ export class NHTSAService {
     vehicleData.model = dataMap.get("Model") || undefined;
     vehicleData.year = this.parseYear(dataMap.get("ModelYear")); // ⚠️ key is `ModelYear` not "Model Year"
     vehicleData.trim = dataMap.get("Trim") || dataMap.get("Series") || undefined;
-    vehicleData.series = dataMap.get("Series") || undefined;
+    vehicleData.color = dataMap.get("color") || undefined;
+    vehicleData.series = dataMap.get("Series") || dataMap.get("Trim") || undefined;
     vehicleData.bodyClass = dataMap.get("BodyClass") || undefined;
     vehicleData.engineModel = dataMap.get("EngineModel") || undefined;
     vehicleData.fuelType = dataMap.get("FuelTypePrimary") || undefined; // ⚠️ check key
@@ -137,6 +141,9 @@ export class NHTSAService {
     vehicleData.manufacturerName = dataMap.get("Manufacturer") || undefined; // ⚠️ key is "Manufacturer"
     vehicleData.plantCountry = dataMap.get("PlantCountry") || undefined;
     vehicleData.vehicleType = dataMap.get("VehicleType") || undefined;
+    vehicleData.price = dataMap.get("BasePrice") || 0;
+    vehicleData.seriesDetail = dataMap.get("Series2") || undefined;
+
 
     console.log(`[NHTSA Service] Processed vehicle data:`, vehicleData);
 

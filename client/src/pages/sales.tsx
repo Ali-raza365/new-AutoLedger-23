@@ -89,6 +89,14 @@ export default function Sales() {
     setVisibleColumns(hidden);
   };
 
+  const handleShowAll = () => {
+    const shown: Record<string, boolean> = {};
+    SALES_COLUMNS.forEach(col => {
+      shown[col.key] = true;
+    });
+    setVisibleColumns(shown);
+  };
+
   const handleResetToDefault = () => {
     const defaults: Record<string, boolean> = {};
     SALES_COLUMNS.forEach(col => {
@@ -101,19 +109,19 @@ export default function Sales() {
     queryKey: ["/api/sales"],
   });
 
-  console.log({sales})
+  console.log({ sales })
 
   const filteredSales = sales.filter((item) => {
-    const matchesSearch = !searchQuery || 
+    const matchesSearch = !searchQuery ||
       item.dealNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (item.customerNumber && item.customerNumber.toLowerCase().includes(searchQuery.toLowerCase()));
-    
+
     return matchesSearch;
   });
 
-    // Export sales data to CSV
+  // Export sales data to CSV
   const exportToCSV = () => {
     if (filteredSales.length === 0) {
       toast({
@@ -127,36 +135,36 @@ export default function Sales() {
     setIsExporting(true);
 
     try {
-       const headers = SALES_COLUMNS.map(column => column.label);
+      const headers = SALES_COLUMNS.map(column => column.label);
 
 
-  
-    const csvData = filteredSales.map((item:any) => {
-      return SALES_COLUMNS.map(column => {
-        const key = column.key;
-        let value = item[key];
 
-        // Handle specific fields
-        if (key === "vehicle") {
-          // You'll need to know what to compose the vehicle string from.
-          // This is a common pattern for "vehicle" fields.
-          value = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`;
-        } else if (key === "deliveryDate" || key === "createdAt") {
-          // Check if the value is a valid Date object before formatting
-          value = item[key] instanceof Date ? formatCsvDate(item[key]) : "";
-        } else if (value === null || value === undefined) {
-          value = "";
-        }
+      const csvData = filteredSales.map((item: any) => {
+        return SALES_COLUMNS.map(column => {
+          const key = column.key;
+          let value = item[key];
 
-        return value;
+          // Handle specific fields
+          if (key === "vehicle") {
+            // You'll need to know what to compose the vehicle string from.
+            // This is a common pattern for "vehicle" fields.
+            value = `${item.year ?? ""} ${item.make ?? ""} ${item.model ?? ""}`;
+          } else if (key === "deliveryDate" || key === "createdAt") {
+            // Check if the value is a valid Date object before formatting
+            value = item[key] instanceof Date ? formatCsvDate(item[key]) : "";
+          } else if (value === null || value === undefined) {
+            value = "";
+          }
+
+          return value;
+        });
       });
-    });
 
       const csvContent = buildCsv(headers, csvData);
       const filename = generateExportFilename("sales");
-      
+
       downloadCsv(csvContent, filename);
-      
+
       toast({
         title: "Export Successful",
         description: `Exported ${filteredSales.length} sales records to ${filename}`,
@@ -204,7 +212,7 @@ export default function Sales() {
                     <SalesForm onSuccess={() => setIsFormOpen(false)} />
                   </DialogContent>
                 </Dialog>
-               <Button variant="outline" onClick={exportToCSV} disabled={isExporting} data-testid="button-export">
+                <Button variant="outline" onClick={exportToCSV} disabled={isExporting} data-testid="button-export">
                   <Download className="mr-2" size={16} />
                   Export
                 </Button>
@@ -227,14 +235,15 @@ export default function Sales() {
                 visibleColumns={visibleColumns}
                 onVisibilityChange={handleVisibilityChange}
                 onHideAll={handleHideAll}
+                onShowAll={handleShowAll}
                 onResetToDefault={handleResetToDefault}
               />
             </div>
           </div>
 
           {/* Sales Table */}
-          <SalesTable 
-            sales={filteredSales} 
+          <SalesTable
+            sales={filteredSales}
             isLoading={isLoading}
             visibleColumns={visibleColumns}
           />

@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
   getSettings,
   updateSettings,
-  resetSettings
+  resetSettings,
+  importSettings
 } from "../controllers";
 import { 
   authenticateToken, 
@@ -22,6 +23,14 @@ router.get("/", requireAnyRole, getSettings);
 
 // Update routes (admin only)
 router.put("/", requireAdmin, validateBody(insertSettingsSchema), updateSettings);
+
 router.post("/reset", requireAdmin, resetSettings);
+
+// ✅ Import route (admin only)
+router.post(
+  "/import/:type",
+  requireAdmin,
+  importSettings
+);
 
 export default router;

@@ -22,6 +22,7 @@ interface ColumnVisibilityDropdownProps {
   visibleColumns: Record<string, boolean>;
   onVisibilityChange: (key: string, visible: boolean) => void;
   onHideAll: () => void;
+  onShowAll: () => void;
   onResetToDefault: () => void;
 }
 
@@ -30,6 +31,7 @@ export default function ColumnVisibilityDropdown({
   visibleColumns,
   onVisibilityChange,
   onHideAll,
+  onShowAll,
   onResetToDefault,
 }: ColumnVisibilityDropdownProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,6 +78,15 @@ export default function ColumnVisibilityDropdown({
 
             {/* Preset Actions */}
             <div className="space-y-2">
+               <Button
+                variant="outline"
+                size="sm"
+                onClick={onShowAll}
+                className="w-full justify-start text-sm"
+                data-testid="button-hide-all"
+              >
+                Show All
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
